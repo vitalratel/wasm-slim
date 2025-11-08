@@ -1,7 +1,9 @@
-//! Windows platform-specific integration tests
+//! Cross-platform integration tests
 //!
-//! Tests platform-specific behavior like path separators, executable extensions,
-//! line endings, temp directories, and file locking.
+//! Tests cross-platform behavior including path separators, executable extensions,
+//! line endings, temp directories, file locking, and filesystem case sensitivity.
+//!
+//! Covers Windows, macOS, and Linux platform-specific behaviors.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -209,36 +211,41 @@ fn test_parent_directory_navigation() {
     assert_eq!(grandparent, Path::new("project"));
 }
 
-#[cfg(target_os = "windows")]
 #[test]
-fn test_windows_case_insensitive_paths() {
-    // Windows-specific: File system is case-insensitive
+fn test_filesystem_case_sensitivity() {
+    // Test that detects actual filesystem behavior rather than assuming based on OS
     let temp_dir = TempDir::new().unwrap();
     let lowercase_file = temp_dir.path().join("test.txt");
     fs::write(&lowercase_file, "content").unwrap();
 
-    // On Windows, should be able to access with different case
+    // Try to access with different case
     let uppercase_file = temp_dir.path().join("TEST.TXT");
-
-    // This should work on Windows (case-insensitive)
-    // On Unix, this would fail (case-sensitive)
     let can_read = fs::read_to_string(&uppercase_file).is_ok();
-    assert!(can_read, "Windows file system should be case-insensitive");
-}
 
-#[cfg(not(target_os = "windows"))]
-#[test]
-fn test_unix_case_sensitive_paths() {
-    // Unix-specific: File system is case-sensitive
-    let temp_dir = TempDir::new().unwrap();
-    let lowercase_file = temp_dir.path().join("test.txt");
-    fs::write(&lowercase_file, "content").unwrap();
+    // Expected behavior by platform:
+    // - Windows: case-insensitive (can_read = true)
+    // - macOS: typically case-insensitive (can_read = true)
+    // - Linux: case-sensitive (can_read = false)
+    #[cfg(target_os = "windows")]
+    assert!(
+        can_read,
+        "Windows filesystems are typically case-insensitive"
+    );
 
-    // On Unix, different case should be different file
-    let uppercase_file = temp_dir.path().join("TEST.TXT");
+    #[cfg(target_os = "macos")]
+    {
+        // macOS can be either case-sensitive or case-insensitive
+        // Default APFS is case-insensitive, but don't enforce
+        // Just document the behavior found
+        if can_read {
+            println!("macOS filesystem is case-insensitive (default APFS behavior)");
+        } else {
+            println!("macOS filesystem is case-sensitive (APFS case-sensitive variant)");
+        }
+    }
 
-    let can_read = fs::read_to_string(&uppercase_file).is_ok();
-    assert!(!can_read, "Unix file system should be case-sensitive");
+    #[cfg(all(unix, not(target_os = "macos")))]
+    assert!(!can_read, "Linux filesystems are typically case-sensitive");
 }
 
 #[test]
