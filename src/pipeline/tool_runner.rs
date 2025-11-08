@@ -45,6 +45,18 @@ impl<FS: FileSystem, CE: CommandExecutor> ToolRunner<FS, CE> {
                 if let Some(ref target_dir) = target_dir {
                     cmd.arg("--target-dir").arg(target_dir);
                 }
+
+                // Strip code coverage instrumentation environment variables to prevent
+                // "can't find crate for `profiler_builtins`" errors when building under
+                // cargo llvm-cov (e.g., in CI coverage runs or integration tests).
+                // These vars cause the subprocess build to inherit profiling flags.
+                cmd.env_remove("CARGO_INCREMENTAL")
+                    .env_remove("RUSTFLAGS")
+                    .env_remove("CARGO_ENCODED_RUSTFLAGS")
+                    .env_remove("LLVM_PROFILE_FILE")
+                    .env_remove("CARGO_LLVM_COV")
+                    .env_remove("CARGO_LLVM_COV_TARGET_DIR");
+
                 cmd
             },
             "cargo",
