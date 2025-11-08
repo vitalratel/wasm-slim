@@ -123,7 +123,7 @@ See [examples/README.md](examples/README.md) for details.
 ### Prerequisites
 
 **Required:**
-- Rust 1.75+ (MSRV)
+- Rust 1.86+ (MSRV)
 - `cargo` (comes with Rust)
 
 **For full integration tests:**

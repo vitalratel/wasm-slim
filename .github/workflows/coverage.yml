@@ -13,6 +13,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  TWIGGY_VERSION: "0.7.0"
 
 jobs:
   coverage:
@@ -28,26 +29,37 @@ jobs:
         with:
           components: llvm-tools-preview
 
-      - name: Cache installed binaries
-        id: cache-bins
+      - name: Cache twiggy binary
+        id: cache-twiggy
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bins-twiggy-${{ hashFiles('**/Cargo.lock') }}
+          path: ~/.cargo/bin/twiggy
+          key: ${{ runner.os }}-twiggy-${{ env.TWIGGY_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-cargo-bins-twiggy-
+            ${{ runner.os }}-twiggy-
 
       - name: Install twiggy
-        if: steps.cache-bins.outputs.cache-hit != 'true'
-        run: cargo install twiggy
+        if: steps.cache-twiggy.outputs.cache-hit != 'true'
+        run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
 
-      - name: Cache cargo
+      - name: Cache cargo dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
-            ~/.cargo/git
-            target
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-deps-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-deps-
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/debug/deps
+            target/debug/build
+            target/debug/.fingerprint
           key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-coverage-
@@ -58,59 +70,18 @@ jobs:
       - name: Generate coverage report
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: lcov.info
-          retention-days: 30
-
-  # Alternative: Use tarpaulin for coverage
-  coverage-tarpaulin:
-    name: Generate Coverage (Tarpaulin)
-    runs-on: ubuntu-latest
-    if: false  # Disabled by default, enable if preferred over llvm-cov
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache installed binaries
-        id: cache-bins
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bins-twiggy-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-bins-twiggy-
-
-      - name: Install twiggy
-        if: steps.cache-bins.outputs.cache-hit != 'true'
-        run: cargo install twiggy
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-tarpaulin-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-
-      - name: Generate coverage with tarpaulin
-        run: cargo tarpaulin --all-features --workspace --timeout 300 --out xml
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-tarpaulin
-          path: cobertura.xml
           retention-days: 30
 
   # Generate HTML coverage report for local viewing
@@ -128,18 +99,40 @@ jobs:
         with:
           components: llvm-tools-preview
 
-      - name: Cache installed binaries
-        id: cache-bins
+      - name: Cache twiggy binary
+        id: cache-twiggy
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bins-twiggy-${{ hashFiles('**/Cargo.lock') }}
+          path: ~/.cargo/bin/twiggy
+          key: ${{ runner.os }}-twiggy-${{ env.TWIGGY_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-cargo-bins-twiggy-
+            ${{ runner.os }}-twiggy-
 
       - name: Install twiggy
-        if: steps.cache-bins.outputs.cache-hit != 'true'
-        run: cargo install twiggy
+        if: steps.cache-twiggy.outputs.cache-hit != 'true'
+        run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-deps-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-deps-
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/debug/deps
+            target/debug/build
+            target/debug/.fingerprint
+          key: ${{ runner.os }}-cargo-coverage-html-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-coverage-html-
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov

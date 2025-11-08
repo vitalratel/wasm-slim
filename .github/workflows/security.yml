@@ -23,13 +23,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo registry
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo index
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload audit report
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-audit-report
           path: audit-report.json
@@ -86,12 +86,6 @@ jobs:
         run: cargo install cargo-outdated --locked
 
       - name: Check for outdated dependencies
-        run: cargo outdated --exit-code 1
-        continue-on-error: true
-        id: outdated
-
-      - name: Comment on outdated dependencies
-        if: steps.outdated.outcome == 'failure'
         run: |
-          echo "::warning::Some dependencies are outdated. Consider updating."
-          cargo outdated
+          echo "::notice::Checking for outdated dependencies (informational only)"
+          cargo outdated || echo "::warning::Some dependencies are outdated. Consider updating."

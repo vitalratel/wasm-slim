@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of Cargo.toml optimization operations
 //!
-//! **Baseline Metrics (2025-11-03, Rust 1.75):**
+//! **Baseline Metrics (2025-11-03, Rust 1.86):**
 //! - Single Cargo.toml optimization: ~1-5ms
 //! - Workspace optimization (10 crates): ~10-30ms
 //! - Parse + modify + write cycle: ~2-8ms
@@ -25,8 +25,9 @@
 //! - File I/O is second bottleneck
 //! - Dry-run mode should be faster (no writes)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::fs;
+use std::hint::black_box;
 use std::path::PathBuf;
 use tempfile::TempDir;
 use wasm_slim::optimizer::{CargoTomlEditor, OptimizationConfig};

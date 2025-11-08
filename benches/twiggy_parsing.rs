@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of parsing twiggy WASM size profiler output
 //!
-//! **Baseline Metrics (2025-11-02, Rust 1.75, AMD Ryzen/Intel i7):**
+//! **Baseline Metrics (2025-11-02, Rust 1.86, AMD Ryzen/Intel i7):**
 //! - Small output (50 items): ~5-15μs
 //! - Medium output (500 items): ~50-150μs  
 //! - Large output (2000 items): ~200-600μs
@@ -29,8 +29,9 @@
 //! - Linear scaling with item count
 //! - Realistic projects: small ~50 items, medium ~500, large ~2000
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::fmt::Write as _;
+use std::hint::black_box;
 
 // Sample twiggy output for benchmarking
 const SAMPLE_TWIGGY_OUTPUT: &str = r#"

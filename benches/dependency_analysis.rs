@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of dependency tree analysis and cargo metadata parsing
 //!
-//! **Baseline Metrics (2025-11-02, Rust 1.75, AMD Ryzen/Intel i7):**
+//! **Baseline Metrics (2025-11-02, Rust 1.86, AMD Ryzen/Intel i7):**
 //! - Real project analysis (~20 deps): ~100-200ms
 //! - Cargo metadata parse: ~80-150ms (dominated by cargo subprocess)
 //! - Small project (8 deps): ~50-100ms
@@ -29,7 +29,8 @@
 //! - Dependency tree traversal is O(n) with small constant factor
 //! - Network not involved (uses local Cargo.lock)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
 use std::path::PathBuf;
 use wasm_slim::analyzer::DependencyAnalyzer;
 

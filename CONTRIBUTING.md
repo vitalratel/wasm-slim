@@ -5,7 +5,7 @@ Thank you for your interest in contributing to wasm-slim!
 ## Development Setup
 
 ### Prerequisites
-- Rust 1.75+ (install via [rustup](https://rustup.rs/))
+- Rust 1.86+ (install via [rustup](https://rustup.rs/))
 - Git
 
 ### Getting Started

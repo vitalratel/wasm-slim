@@ -551,8 +551,8 @@ mod tests {
     fn test_tool_version_with_different_format_succeeds() {
         // Test that version parsing works with different tool output formats
         // Different tools format their version output differently:
-        // - "cargo 1.75.0 (1d8b05cdd 2023-11-20)"
-        // - "rustc 1.75.0 (82e1608df 2023-12-21)"
+        // - "cargo 1.86.0 (1d8b05cdd 2024-03-20)"
+        // - "rustc 1.86.0 (82e1608df 2024-03-31)"
         // - "wasm-opt version 116 (version_116)"
         let tool = Tool::new("cargo", "cargo", "--version", true);
 

@@ -124,7 +124,7 @@ impl DependencyAnalyzer {
 
                 for alternative in &heavy_info.alternatives {
                     issues.push(DependencyIssue {
-                        package: package.name.clone(),
+                        package: package.name.to_string(),
                         version: package.version.to_string(),
                         severity,
                         issue: heavy_info.reason.to_string(),
@@ -141,7 +141,7 @@ impl DependencyAnalyzer {
 
             // Track duplicate versions
             duplicates
-                .entry(package.name.clone())
+                .entry(package.name.to_string())
                 .or_default()
                 .push(package.version.to_string());
         }

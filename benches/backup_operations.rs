@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of backup creation and restoration
 //!
-//! **Baseline Metrics (2025-11-03, Rust 1.75):**
+//! **Baseline Metrics (2025-11-03, Rust 1.86):**
 //! - Single backup creation: ~1-3ms (depends on file size)
 //! - Backup restoration: ~1-2ms
 //! - List backups: <1ms
@@ -23,8 +23,9 @@
 //! - Backup creation includes timestamp formatting
 //! - List operation depends on number of existing backups
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::fs;
+use std::hint::black_box;
 use tempfile::TempDir;
 use wasm_slim::optimizer::backup::BackupManager;
 

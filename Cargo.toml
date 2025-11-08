@@ -2,7 +2,7 @@
 name = "wasm-slim"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.86"
 authors = ["wasm-slim contributors"]
 license = "MIT"
 description = "WASM bundle size optimizer"
@@ -19,7 +19,7 @@ clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 
 # TOML parsing (preserves formatting)
-toml_edit = { version = "0.22", features = ["serde"] }
+toml_edit = { version = "0.23", features = ["serde"] }
 
 # Serialization/deserialization
 serde = { version = "1", features = ["derive"] }
@@ -27,7 +27,7 @@ serde_json = "1"
 
 # Error handling
 anyhow = "1"
-thiserror = "1"
+thiserror = "2"
 
 # Progress indicators
 indicatif = { version = "0.17", default-features = false, features = ["unicode-width"] }
@@ -36,10 +36,10 @@ indicatif = { version = "0.17", default-features = false, features = ["unicode-w
 console = { version = "0.15", default-features = false, features = ["unicode-width"] }
 
 # Cargo workspace metadata
-cargo_metadata = "0.18"
+cargo_metadata = "0.23"
 
 # Tool detection
-which = "6"
+which = "8"
 
 # Parallelization
 rayon = "1.10"
@@ -69,7 +69,7 @@ predicates = "3"
 proptest = "1.5"
 
 # Benchmarking
-criterion = "0.5"
+criterion = "0.7"
 
 [lib]
 name = "wasm_slim"

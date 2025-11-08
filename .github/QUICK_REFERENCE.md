@@ -60,7 +60,7 @@ cargo doc --all-features --no-deps
 
 ### test.yml - Tests
 - Runs on: Ubuntu, macOS, Windows
-- Rust versions: stable, 1.75 (MSRV)
+- Rust versions: stable, 1.86 (MSRV)
 - Tests: All features, no features, docs, examples
 - Duration: ~8 min per platform
 

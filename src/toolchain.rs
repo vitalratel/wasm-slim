@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn test_is_nightly_toolchain_detects_nightly() {
         let mock = MockCommandExecutor {
-            stdout: b"rustc 1.75.0-nightly (abc123 2024-01-01)\n".to_vec(),
+            stdout: b"rustc 1.86.0-nightly (abc123 2024-03-01)\n".to_vec(),
         };
         let detector = ToolchainDetector::with_executor(mock);
 
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_is_nightly_toolchain_detects_stable() {
         let mock = MockCommandExecutor {
-            stdout: b"rustc 1.75.0 (stable 2024-01-01)\n".to_vec(),
+            stdout: b"rustc 1.86.0 (stable 2024-03-31)\n".to_vec(),
         };
         let detector = ToolchainDetector::with_executor(mock);
 

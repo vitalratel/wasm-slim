@@ -12,7 +12,7 @@ This directory contains comprehensive CI/CD workflows for the wasm-slim project.
 
 **Key Features**:
 - Multi-platform testing (Ubuntu, macOS, Windows)
-- Tests both stable Rust and MSRV (1.75)
+- Tests both stable Rust and MSRV (1.86)
 - Runs tests with all features and no default features
 - Includes doc tests and example builds
 - Separate CLI integration tests

@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of configuration file loading and validation
 //!
-//! **Baseline Metrics (2025-11-03, Rust 1.75):**
+//! **Baseline Metrics (2025-11-03, Rust 1.86):**
 //! - Config load + parse: ~0.5-2ms
 //! - Template resolution: ~0.1-0.5ms
 //! - Config validation: <0.1ms
@@ -24,8 +24,9 @@
 //! - Template resolution involves HashMap lookup
 //! - Validation is primarily arithmetic checks
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::fs;
+use std::hint::black_box;
 use tempfile::TempDir;
 use wasm_slim::config::{ConfigLoader, Template, TemplateResolver};
 

@@ -238,7 +238,7 @@ Edit `test.yml`:
 ```yaml
 matrix:
   os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-20.04]
-  rust: [stable, "1.75", nightly]  # Add nightly if needed
+  rust: [stable, "1.86", nightly]  # Add nightly if needed
 ```
 
 ### Skip CI on Specific Commits

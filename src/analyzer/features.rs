@@ -123,7 +123,10 @@ impl<CE: CommandExecutor> FeatureAnalyzer<CE> {
             }
 
             // Get enabled features for this package
-            let enabled_features = feature_tree.get(&package.name).cloned().unwrap_or_default();
+            let enabled_features = feature_tree
+                .get(&package.name.to_string())
+                .cloned()
+                .unwrap_or_default();
 
             total_features += enabled_features.len();
 
@@ -134,7 +137,7 @@ impl<CE: CommandExecutor> FeatureAnalyzer<CE> {
 
                 if !default_features.is_empty() {
                     unused_features.push(UnusedFeature {
-                        package: package.name.clone(),
+                        package: package.name.to_string(),
                         feature: "default".to_string(),
                         enabled_by: "implicit".to_string(),
                         estimated_impact_kb: 50, // Conservative estimate
@@ -147,7 +150,7 @@ impl<CE: CommandExecutor> FeatureAnalyzer<CE> {
             for feature in &enabled_features {
                 if self.is_commonly_unused_feature(&package.name, feature) {
                     unused_features.push(UnusedFeature {
-                        package: package.name.clone(),
+                        package: package.name.to_string(),
                         feature: feature.clone(),
                         enabled_by: "explicit".to_string(),
                         estimated_impact_kb: self.estimate_feature_impact(&package.name, feature),

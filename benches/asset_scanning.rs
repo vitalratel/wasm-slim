@@ -2,7 +2,7 @@
 //!
 //! **Purpose:** Measure performance of asset detection and scanning operations
 //!
-//! **Baseline Metrics (2025-11-02, Rust 1.75, AMD Ryzen/Intel i7):**
+//! **Baseline Metrics (2025-11-02, Rust 1.86, AMD Ryzen/Intel i7):**
 //! - Real project scan (~50 files): ~10-20ms
 //! - Small project (10 assets): ~5-10ms
 //! - Medium project (50 assets): ~15-30ms
@@ -27,7 +27,8 @@
 //! - Parser performance dominates for large Rust codebases
 //! - Regex matching is optimized (no unicode tables)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
 use std::path::PathBuf;
 use wasm_slim::analyzer::AssetDetector;
 
