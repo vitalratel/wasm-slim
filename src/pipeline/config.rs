@@ -3,9 +3,10 @@
 use std::path::PathBuf;
 
 /// WebAssembly compilation target
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WasmTarget {
     /// wasm32-unknown-unknown (default, for web)
+    #[default]
     Wasm32UnknownUnknown,
     /// wasm32-wasi (WASI support)
     Wasm32Wasi,
@@ -24,16 +25,11 @@ impl WasmTarget {
     }
 }
 
-impl Default for WasmTarget {
-    fn default() -> Self {
-        Self::Wasm32UnknownUnknown
-    }
-}
-
 /// wasm-bindgen output target
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BindgenTarget {
     /// Web browser (ES modules)
+    #[default]
     Web,
     /// Node.js (CommonJS)
     NodeJs,
@@ -55,12 +51,6 @@ impl BindgenTarget {
             Self::Deno => "deno",
             Self::NoModules => "no-modules",
         }
-    }
-}
-
-impl Default for BindgenTarget {
-    fn default() -> Self {
-        Self::Web
     }
 }
 
