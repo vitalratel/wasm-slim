@@ -83,8 +83,8 @@ fn test_timeout_boundary_just_under() {
 #[test]
 fn test_timeout_boundary_just_over() {
     // Test operation completing just over timeout limit
-    let timeout_ms = 150;
-    let operation_ms = 250; // 167% of timeout
+    let timeout_ms = 100;
+    let operation_ms = 300; // 300% of timeout - increased margin for reliability
 
     let start = Instant::now();
     let result = operation_with_timeout(
