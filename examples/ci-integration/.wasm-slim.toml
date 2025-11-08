@@ -1,0 +1,19 @@
+# wasm-slim CI/CD configuration
+
+template = "balanced"
+
+[size-budget]
+# Strict budget for CI enforcement
+target-size-kb = 800        # Green: Ideal size
+warn-threshold-kb = 1000    # Yellow: Warning level  
+max-size-kb = 1200          # Red: Hard limit (fails CI)
+
+[profile]
+# Balanced between size and build time
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+
+[wasm-opt]
+# Production optimization level
+flags = ["-O3", "--strip-debug"]

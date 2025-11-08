@@ -1,0 +1,135 @@
+name: WASM Size Budget
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  wasm-size-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Install wasm-slim
+      run: |
+        cargo install --git https://github.com/YOUR_USERNAME/wasm-slim.git
+        # Or use a specific version:
+        # cargo install wasm-slim --version 0.1.0
+    
+    - name: Install wasm-opt (optional but recommended)
+      run: |
+        wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
+        tar xzf binaryen-version_116-x86_64-linux.tar.gz
+        sudo mv binaryen-version_116/bin/wasm-opt /usr/local/bin/
+    
+    - name: Build WASM module
+      run: |
+        cd examples/ci-integration
+        wasm-slim build --no-emoji
+    
+    - name: Check size budget
+      id: size_check
+      run: |
+        cd examples/ci-integration
+        if wasm-slim build --check --no-emoji --json > result.json; then
+          echo "✅ Size budget check passed"
+          echo "status=passed" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Size budget check failed"
+          echo "status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+    
+    - name: Extract size metrics
+      id: metrics
+      run: |
+        cd examples/ci-integration
+        SIZE_KB=$(jq -r '.size_kb' result.json)
+        STATUS=$(jq -r '.budget.status' result.json)
+        TARGET=$(jq -r '.budget.target_kb' result.json)
+        echo "size_kb=${SIZE_KB}" >> $GITHUB_OUTPUT
+        echo "status=${STATUS}" >> $GITHUB_OUTPUT
+        echo "target=${TARGET}" >> $GITHUB_OUTPUT
+    
+    - name: Check for regressions
+      run: |
+        cd examples/ci-integration
+        REGRESSION=$(jq -r '.regression' result.json)
+        if [ "$REGRESSION" = "true" ]; then
+          echo "::warning::WASM bundle size increased from previous build"
+        fi
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const result = JSON.parse(fs.readFileSync('examples/ci-integration/result.json', 'utf8'));
+          
+          const statusEmoji = {
+            'under_target': '✅',
+            'above_target': '⚠️',
+            'warning': '🟡',
+            'over_budget': '❌'
+          };
+          
+          const comment = `## 📦 WASM Bundle Size Report
+          
+          **Size**: ${result.size_kb.toFixed(1)} KB
+          **Status**: ${statusEmoji[result.budget.status]} ${result.budget.status.replace('_', ' ')}
+          **Target**: ${result.budget.target_kb} KB
+          **Max Allowed**: ${result.budget.max_size_kb} KB
+          
+          ${result.regression ? '⚠️ **Warning**: Size increased from previous build by ' + result.delta_kb.toFixed(1) + ' KB (' + result.delta_percent.toFixed(1) + '%)' : ''}
+          
+          <details>
+          <summary>View detailed metrics</summary>
+          
+          \`\`\`json
+          ${JSON.stringify(result, null, 2)}
+          \`\`\`
+          </details>`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: wasm-build-results
+        path: |
+          examples/ci-integration/result.json
+          examples/ci-integration/target/wasm32-unknown-unknown/release/*.wasm
+    
+    - name: Upload size history
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: size-history
+        path: examples/ci-integration/.wasm-slim/history.json

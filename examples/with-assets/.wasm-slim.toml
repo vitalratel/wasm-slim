@@ -1,0 +1,22 @@
+# wasm-slim configuration for with-assets example
+
+# Use balanced template (good default for most projects)
+template = "balanced"
+
+[size-budget]
+# Target size in KB (ideal goal)
+target-size-kb = 500
+
+# Warning threshold in KB (yellow warning)
+warn-threshold-kb = 750
+
+# Maximum allowed size in KB (hard limit, fails CI)
+max-size-kb = 1000
+
+[profile]
+# These override the template defaults if needed
+# opt-level = "z"  # Uncomment for maximum size reduction
+
+[wasm-opt]
+# Additional wasm-opt flags
+# flags = ["-Oz", "--strip-debug"]

@@ -1,0 +1,12 @@
+This is a dummy font file to simulate a real font asset.
+In a real project, this would be a .ttf, .woff, or .woff2 file.
+Font files can be quite large (100KB-500KB or more).
+
+Repeating content to make this file larger for demonstration purposes...
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+This pattern repeats to simulate a realistic font file size.
+wasm-slim will detect this embedded asset and recommend externalization
+if it exceeds the configured thresholds (typically >10% of bundle size).

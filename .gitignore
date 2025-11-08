@@ -1,0 +1,53 @@
+# Rust build artifacts
+/target/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+.cache/
+
+# Test outputs
+*.profdata
+*.profraw
+
+# CI cache
+.ci-cache/
+
+# Serena (LSP/tooling)
+.serena/
+
+# Claude Code
+.claude/
+CLAUDE.md
+.mcp.json
+
+# wasm-slim runtime files
+.wasm-slim/
+# Track benchmark baselines in git (exception to above)
+!.wasm-slim/benchmarks/
+!.wasm-slim/benchmarks/baseline.json
+
+# Internal documentation (not for public GitHub)
+docs/review/
+docs/project/
+
+# Added by cargo
+
+/target

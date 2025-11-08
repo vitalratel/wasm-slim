@@ -1,0 +1,122 @@
+[package]
+name = "wasm-slim"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["wasm-slim contributors"]
+license = "MIT"
+description = "WASM bundle size optimizer"
+repository = "https://github.com/vitalratel/wasm-slim"
+documentation = "https://docs.rs/wasm-slim"
+homepage = "https://github.com/vitalratel/wasm-slim"
+readme = "README.md"
+keywords = ["wasm", "webassembly", "optimization", "bundle-size", "cli"]
+categories = ["command-line-utilities", "development-tools", "wasm"]
+
+[dependencies]
+# CLI framework
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+
+# TOML parsing (preserves formatting)
+toml_edit = { version = "0.22", features = ["serde"] }
+
+# Serialization/deserialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Progress indicators
+indicatif = { version = "0.17", default-features = false, features = ["unicode-width"] }
+
+# Terminal styling
+console = { version = "0.15", default-features = false, features = ["unicode-width"] }
+
+# Cargo workspace metadata
+cargo_metadata = "0.18"
+
+# Tool detection
+which = "6"
+
+# Parallelization
+rayon = "1.10"
+
+# Synchronization primitives (non-poisoning locks)
+parking_lot = "0.12"
+
+# Asset detection
+# Note: Need 'full' feature for File/Item types. Disabling default features but
+# explicitly enabling what we need: full, parsing, visit, derive, printing.
+# Saves ~50-100KB vs using default features.
+syn = { version = "2", default-features = false, features = ["full", "parsing", "visit", "derive", "printing"] }
+quote = "1"
+# Note: Re-enabled unicode-perl for \s, \w, etc. (~300KB cost but necessary)
+regex = { version = "1", default-features = false, features = ["std", "unicode-perl"] }
+
+# Logging
+env_logger = "0.11"
+log = "0.4"
+uuid = { version = "1.18.1", features = ["v4"] }
+
+[dev-dependencies]
+# Testing
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+proptest = "1.5"
+
+# Benchmarking
+criterion = "0.5"
+
+[lib]
+name = "wasm_slim"
+path = "src/lib.rs"
+
+[[bin]]
+name = "wasm-slim"
+path = "src/main.rs"
+
+[[bin]]
+name = "bench-tracker"
+path = "src/bin/bench-tracker.rs"
+
+[[bench]]
+name = "asset_scanning"
+harness = false
+
+[[bench]]
+name = "dependency_analysis"
+harness = false
+
+[[bench]]
+name = "twiggy_parsing"
+harness = false
+
+[[bench]]
+name = "cargo_optimizer"
+harness = false
+
+[[bench]]
+name = "backup_operations"
+harness = false
+
+[[bench]]
+name = "config_parsing"
+harness = false
+
+[profile]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = "z"  # Maximum size optimization (more aggressive than 's')
+strip = true
+panic = "abort"
+
+# Profiling profile: optimized build with debug symbols for flamegraph/perf
+[profile.profiling]
+inherits = "release"
+debug = true

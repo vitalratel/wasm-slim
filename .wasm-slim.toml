@@ -1,0 +1,20 @@
+template = "balanced"
+
+[profile]
+opt-level = "s"
+lto = "fat"
+strip = true
+codegen-units = 1
+panic = "abort"
+
+[wasm_opt]
+flags = [
+    "-Oz",
+    "--enable-mutable-globals",
+    "--enable-bulk-memory",
+    "--enable-sign-ext",
+    "--enable-nontrapping-float-to-int",
+    "--strip-debug",
+    "--strip-dwarf",
+    "--strip-producers",
+]
