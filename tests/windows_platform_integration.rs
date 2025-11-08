@@ -59,7 +59,8 @@ fn test_windows_path_separator() {
     let path = PathBuf::from("C:\\Users\\test\\project");
 
     assert!(path.to_string_lossy().contains("\\"));
-    assert_eq!(path.components().count(), 4); // C:, Users, test, project
+    // Windows paths have: Prefix(C:), RootDir(\), Users, test, project = 5 components
+    assert_eq!(path.components().count(), 5);
 }
 
 #[cfg(target_os = "windows")]

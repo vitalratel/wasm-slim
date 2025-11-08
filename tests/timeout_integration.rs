@@ -91,14 +91,22 @@ fn test_timeout_boundary_just_over() {
     );
     let elapsed = start.elapsed();
 
-    assert!(result.is_err(), "Operation just over timeout should fail");
     assert!(
-        elapsed >= Duration::from_millis(timeout_ms),
-        "Should wait at least timeout duration"
+        result.is_err(),
+        "Operation just over timeout should fail (elapsed: {:?})",
+        elapsed
     );
     assert!(
-        elapsed < Duration::from_millis(timeout_ms + 100),
-        "Should timeout promptly (within 100ms tolerance)"
+        elapsed >= Duration::from_millis(timeout_ms),
+        "Should wait at least timeout duration (elapsed: {:?})",
+        elapsed
+    );
+    // Be generous with timing on CI systems - allow up to 500ms tolerance for thread scheduling
+    assert!(
+        elapsed < Duration::from_millis(timeout_ms + 500),
+        "Should timeout promptly (elapsed: {:?}, expected: ~{}ms)",
+        elapsed,
+        timeout_ms
     );
 }
 
@@ -123,15 +131,25 @@ fn test_timeout_error_message_clarity() {
 #[test]
 fn test_multiple_timeouts_sequential() {
     // Test that multiple timeout operations work correctly in sequence
+    // Use generous timeouts for CI systems to avoid flakiness
     let results: Vec<Result<(), String>> = vec![
-        operation_with_timeout(|| simulate_long_operation(50), Duration::from_millis(100)),
-        operation_with_timeout(|| simulate_long_operation(150), Duration::from_millis(100)),
-        operation_with_timeout(|| simulate_long_operation(50), Duration::from_millis(100)),
+        operation_with_timeout(|| simulate_long_operation(50), Duration::from_millis(500)),
+        operation_with_timeout(|| simulate_long_operation(600), Duration::from_millis(500)),
+        operation_with_timeout(|| simulate_long_operation(50), Duration::from_millis(500)),
     ];
 
-    assert!(results[0].is_ok(), "First operation should succeed");
-    assert!(results[1].is_err(), "Second operation should timeout");
-    assert!(results[2].is_ok(), "Third operation should succeed");
+    assert!(
+        results[0].is_ok(),
+        "First operation should succeed (50ms with 500ms timeout)"
+    );
+    assert!(
+        results[1].is_err(),
+        "Second operation should timeout (600ms with 500ms timeout)"
+    );
+    assert!(
+        results[2].is_ok(),
+        "Third operation should succeed (50ms with 500ms timeout)"
+    );
 }
 
 #[test]

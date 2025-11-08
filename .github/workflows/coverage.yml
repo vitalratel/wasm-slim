@@ -42,6 +42,22 @@ jobs:
         if: steps.cache-twiggy.outputs.cache-hit != 'true'
         run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
 
+      - name: Install wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Cache wasm-bindgen binary
+        id: cache-wasm-bindgen
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: ${{ runner.os }}-wasm-bindgen-0.2.105
+          restore-keys: |
+            ${{ runner.os }}-wasm-bindgen-0.2.105
+
+      - name: Install wasm-bindgen-cli
+        if: steps.cache-wasm-bindgen.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.105
+
       - name: Cache cargo dependencies
         uses: actions/cache@v4
         with:
@@ -111,6 +127,22 @@ jobs:
       - name: Install twiggy
         if: steps.cache-twiggy.outputs.cache-hit != 'true'
         run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
+
+      - name: Install wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Cache wasm-bindgen binary
+        id: cache-wasm-bindgen-html
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: ${{ runner.os }}-wasm-bindgen-0.2.105
+          restore-keys: |
+            ${{ runner.os }}-wasm-bindgen-0.2.105
+
+      - name: Install wasm-bindgen-cli
+        if: steps.cache-wasm-bindgen-html.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.105
 
       - name: Cache cargo dependencies
         uses: actions/cache@v4
