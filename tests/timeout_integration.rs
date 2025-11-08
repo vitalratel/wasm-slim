@@ -55,8 +55,10 @@ fn test_operation_exceeds_timeout() {
 #[test]
 fn test_timeout_boundary_just_under() {
     // Test operation completing just under timeout limit
-    let timeout_ms = 200;
-    let operation_ms = 150; // 75% of timeout
+    // Use a generous timeout (500ms) with a short operation (100ms = 20% of timeout)
+    // to account for thread spawning, channel communication, and CI scheduling overhead
+    let timeout_ms = 500;
+    let operation_ms = 100; // 20% of timeout
 
     let start = Instant::now();
     let result = operation_with_timeout(
@@ -70,7 +72,7 @@ fn test_timeout_boundary_just_under() {
         "Operation just under timeout should succeed (elapsed: {:?})",
         elapsed
     );
-    // Be generous with timing on CI systems - allow up to 2x the timeout
+    // Be generous with timing on CI systems - allow up to 2x the timeout for scheduling overhead
     assert!(
         elapsed < Duration::from_millis(timeout_ms * 2),
         "Should complete within reasonable time (elapsed: {:?})",

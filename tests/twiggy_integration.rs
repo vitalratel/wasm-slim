@@ -6,14 +6,30 @@ use std::process::Command;
 mod common;
 use common::setup_test_project;
 
+/// Remove code coverage instrumentation environment variables from a Command.
+///
+/// This prevents "can't find crate for `profiler_builtins`" errors when building
+/// WASM binaries under cargo llvm-cov (e.g., in CI coverage runs). The coverage
+/// environment variables cause subprocess builds to inherit profiling flags.
+fn strip_coverage_env(cmd: &mut Command) {
+    cmd.env_remove("CARGO_INCREMENTAL")
+        .env_remove("RUSTFLAGS")
+        .env_remove("CARGO_ENCODED_RUSTFLAGS")
+        .env_remove("LLVM_PROFILE_FILE")
+        .env_remove("CARGO_LLVM_COV")
+        .env_remove("CARGO_LLVM_COV_TARGET_DIR");
+}
+
 #[test]
 fn test_twiggy_end_to_end_analysis() -> Result<()> {
     require_wasm_tools!();
 
     let test_dir = setup_test_project("twiggy_e2e")?;
 
-    // Build a simple WASM binary
-    let status = Command::new("cargo")
+    // Build a simple WASM binary (strip coverage env vars to prevent profiler_builtins errors)
+    let mut cmd = Command::new("cargo");
+    strip_coverage_env(&mut cmd);
+    let status = cmd
         .current_dir(&test_dir)
         .args(["build", "--target", "wasm32-unknown-unknown", "--release"])
         .status()?;
