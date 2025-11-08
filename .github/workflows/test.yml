@@ -52,6 +52,19 @@ jobs:
         if: steps.cache-twiggy.outputs.cache-hit != 'true'
         run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
 
+      - name: Cache wasm-bindgen binary
+        id: cache-wasm-bindgen
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: ${{ runner.os }}-wasm-bindgen-0.2.92
+          restore-keys: |
+            ${{ runner.os }}-wasm-bindgen-
+
+      - name: Install wasm-bindgen-cli
+        if: steps.cache-wasm-bindgen.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.92
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
