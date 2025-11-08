@@ -174,11 +174,13 @@ jobs:
         with:
           path: |
             ~/.cargo/registry/index
+            ~/.cargo/registry/cache
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-minimal-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check with minimal versions
         run: |
+          rm -rf ~/.cargo/registry/src
           cargo +nightly update -Z minimal-versions
           cargo +nightly check --all-features

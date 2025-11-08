@@ -189,6 +189,7 @@ fn test_nested_temp_directories_cleanup_recursively() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_temp_file_with_special_permissions_cleans_up() {
     use std::os::unix::fs::PermissionsExt;
 
@@ -250,6 +251,7 @@ fn test_large_temp_directory_with_many_files_cleans_up() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_symlinks_in_temp_directory_cleanup_correctly() {
     use std::os::unix::fs::symlink;
 

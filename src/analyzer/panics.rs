@@ -325,7 +325,7 @@ impl<'a> Visit<'a> for PanicVisitor<'a> {
         syn::visit::visit_expr_binary(self, node);
     }
 
-    /// Visit index expressions to detect arr[i]
+    /// Visit index expressions to detect arr\[i\]
     fn visit_expr_index(&mut self, node: &'a ExprIndex) {
         self.add_panic(PanicPattern::Index, 0);
 

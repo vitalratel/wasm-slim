@@ -247,7 +247,7 @@ impl<FS: FileSystem> BuildStdOptimizer<FS> {
         Ok(changes)
     }
 
-    /// Apply [unstable] section with build-std settings
+    /// Apply \[unstable\] section with build-std settings
     fn apply_unstable_section(
         &self,
         doc: &mut DocumentMut,
@@ -291,7 +291,7 @@ impl<FS: FileSystem> BuildStdOptimizer<FS> {
         Ok(())
     }
 
-    /// Apply [build] section for SSR projects
+    /// Apply \[build\] section for SSR projects
     fn apply_build_section(
         &self,
         doc: &mut DocumentMut,
@@ -600,8 +600,6 @@ build-std = ["std", "panic_abort"]
     #[test]
     #[ignore = "Fails when running as root in Docker/CI containers"]
     fn test_readonly_directory_returns_io_error() {
-        use std::fs;
-
         let temp_dir = TempDir::new().unwrap();
         let cargo_dir = temp_dir.path().join(".cargo");
 

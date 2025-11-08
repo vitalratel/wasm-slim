@@ -26,7 +26,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Error handling
-anyhow = "1"
+# Constrain to >=1.0.40 for backtrace() method support
+anyhow = "1.0.40"
 thiserror = "2"
 
 # Progress indicators
@@ -54,7 +55,8 @@ parking_lot = "0.12"
 syn = { version = "2", default-features = false, features = ["full", "parsing", "visit", "derive", "printing"] }
 quote = "1"
 # Note: Re-enabled unicode-perl for \s, \w, etc. (~300KB cost but necessary)
-regex = { version = "1", default-features = false, features = ["std", "unicode-perl"] }
+# Constrain to >=1.10 to ensure regex-syntax >=0.8 (0.6.x has unicode_tables issues)
+regex = { version = "1.10", default-features = false, features = ["std", "unicode-perl"] }
 
 # Logging
 env_logger = "0.11"
