@@ -62,12 +62,8 @@ jobs:
             ${{ runner.os }}-wasm-bindgen-0.2.105
 
       - name: Install wasm-bindgen-cli
-        run: |
-          if ! command -v wasm-bindgen &> /dev/null; then
-            cargo install wasm-bindgen-cli --version 0.2.105
-          else
-            echo "wasm-bindgen already installed: $(wasm-bindgen --version)"
-          fi
+        if: steps.cache-wasm-bindgen.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.105
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -136,6 +132,19 @@ jobs:
         if: steps.cache-twiggy.outputs.cache-hit != 'true'
         run: cargo install twiggy --version ${{ env.TWIGGY_VERSION }}
 
+      - name: Cache wasm-bindgen binary
+        id: cache-wasm-bindgen-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: ${{ runner.os }}-wasm-bindgen-0.2.105
+          restore-keys: |
+            ${{ runner.os }}-wasm-bindgen-0.2.105
+
+      - name: Install wasm-bindgen-cli
+        if: steps.cache-wasm-bindgen-cli.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.105
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -144,14 +153,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-cli-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install wasm-bindgen-cli
-        run: |
-          if ! command -v wasm-bindgen &> /dev/null; then
-            cargo install wasm-bindgen-cli --version 0.2.92
-          else
-            echo "wasm-bindgen already installed: $(wasm-bindgen --version)"
-          fi
 
       - name: Build CLI binaries
         run: |
