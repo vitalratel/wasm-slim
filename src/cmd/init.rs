@@ -157,27 +157,45 @@ pub fn cmd_init(template: &str) -> Result<()> {
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
     use tempfile::TempDir;
+
+    /// Guard that restores the working directory on drop
+    struct WorkingDirGuard {
+        old_dir: PathBuf,
+    }
+
+    impl WorkingDirGuard {
+        fn new(new_dir: &std::path::Path) -> std::io::Result<Self> {
+            let old_dir = std::env::current_dir()?;
+            std::env::set_current_dir(new_dir)?;
+            Ok(Self { old_dir })
+        }
+    }
+
+    impl Drop for WorkingDirGuard {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.old_dir);
+        }
+    }
 
     #[test]
     fn test_cmd_init_with_invalid_template_returns_error() {
         let temp_dir = TempDir::new().unwrap();
-        let old_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(temp_dir.path()).unwrap();
+        let _guard = WorkingDirGuard::new(temp_dir.path()).unwrap();
 
         let result = cmd_init("nonexistent_template");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
 
-        // Restore directory
-        let _ = std::env::set_current_dir(old_dir);
+        drop(_guard);
+        drop(temp_dir);
     }
 
     #[test]
     fn test_cmd_init_creates_config_in_current_dir() {
         let temp_dir = TempDir::new().unwrap();
-        let old_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(temp_dir.path()).unwrap();
+        let _guard = WorkingDirGuard::new(temp_dir.path()).unwrap();
 
         let result = cmd_init("balanced");
         assert!(result.is_ok());
@@ -186,15 +204,14 @@ mod tests {
         let config_path = temp_dir.path().join(config::CONFIG_FILE_NAME);
         assert!(config_path.exists());
 
-        // Restore directory
-        let _ = std::env::set_current_dir(old_dir);
+        drop(_guard);
+        drop(temp_dir);
     }
 
     #[test]
     fn test_cmd_init_with_existing_config_does_not_overwrite() {
         let temp_dir = TempDir::new().unwrap();
-        let old_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(temp_dir.path()).unwrap();
+        let _guard = WorkingDirGuard::new(temp_dir.path()).unwrap();
 
         // Create config first time
         let result = cmd_init("balanced");
@@ -212,8 +229,8 @@ mod tests {
         let new_content = fs::read_to_string(&config_path).unwrap();
         assert_eq!(original_content, new_content);
 
-        // Restore directory
-        let _ = std::env::set_current_dir(old_dir);
+        drop(_guard);
+        drop(temp_dir);
     }
 
     #[test]
