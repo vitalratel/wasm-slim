@@ -4,6 +4,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/wasm-slim.svg)](https://crates.io/crates/wasm-slim)
 [![Documentation](https://docs.rs/wasm-slim/badge.svg)](https://docs.rs/wasm-slim)
+[![codecov](https://codecov.io/gh/vitalratel/wasm-slim/branch/main/graph/badge.svg)](https://codecov.io/gh/vitalratel/wasm-slim)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Status: Beta](https://img.shields.io/badge/Status-Beta-orange)
 
