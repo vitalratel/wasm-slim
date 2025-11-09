@@ -152,3 +152,95 @@ pub fn cmd_init(template: &str) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_cmd_init_with_invalid_template_returns_error() {
+        let temp_dir = TempDir::new().unwrap();
+        let old_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        let result = cmd_init("nonexistent_template");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+
+        // Restore directory
+        let _ = std::env::set_current_dir(old_dir);
+    }
+
+    #[test]
+    fn test_cmd_init_creates_config_in_current_dir() {
+        let temp_dir = TempDir::new().unwrap();
+        let old_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        let result = cmd_init("balanced");
+        assert!(result.is_ok());
+
+        // Verify config file was created
+        let config_path = temp_dir.path().join(config::CONFIG_FILE_NAME);
+        assert!(config_path.exists());
+
+        // Restore directory
+        let _ = std::env::set_current_dir(old_dir);
+    }
+
+    #[test]
+    fn test_cmd_init_with_existing_config_does_not_overwrite() {
+        let temp_dir = TempDir::new().unwrap();
+        let old_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        // Create config first time
+        let result = cmd_init("balanced");
+        assert!(result.is_ok());
+
+        // Read original content
+        let config_path = temp_dir.path().join(config::CONFIG_FILE_NAME);
+        let original_content = fs::read_to_string(&config_path).unwrap();
+
+        // Try to create again
+        let result = cmd_init("aggressive");
+        assert!(result.is_ok());
+
+        // Verify file was NOT overwritten
+        let new_content = fs::read_to_string(&config_path).unwrap();
+        assert_eq!(original_content, new_content);
+
+        // Restore directory
+        let _ = std::env::set_current_dir(old_dir);
+    }
+
+    #[test]
+    fn test_cmd_init_with_all_templates() {
+        // Test that all templates can be loaded without error
+        let templates = ["balanced", "aggressive", "minimal"];
+
+        for template_name in &templates {
+            let template = config::Template::get(template_name);
+            assert!(
+                template.is_some(),
+                "Template {} should exist",
+                template_name
+            );
+
+            let t = template.unwrap();
+            assert!(!t.name.is_empty());
+            assert!(!t.description.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_template_resolver_from_template() {
+        let template = config::Template::get("balanced").unwrap();
+        let config = config::TemplateResolver::from_template(&template);
+
+        // Verify config structure is created
+        assert!(config.profile.is_some());
+    }
+}

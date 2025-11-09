@@ -192,7 +192,12 @@ impl<FS: FileSystem, CE: CommandExecutor> ToolRunner<FS, CE> {
         }
 
         // Replace original with snipped version
-        fs::rename(&temp_file, wasm_file)?;
+        // Note: Using copy instead of rename for testability with mocked filesystem
+        self.fs
+            .copy(&temp_file, &wasm_file)
+            .map_err(PipelineError::Io)?;
+        // Clean up temp file (best effort, ignore errors)
+        let _ = fs::remove_file(&temp_file);
 
         Ok(())
     }
@@ -252,7 +257,8 @@ mod tests {
         }
 
         fn copy(&self, _from: &Path, _to: &Path) -> io::Result<u64> {
-            unimplemented!("copy not needed for these tests")
+            // Mock copy - just return success with fake size
+            Ok(1024)
         }
     }
 
@@ -430,5 +436,31 @@ mod tests {
         } else {
             panic!("Expected ToolFailed error");
         }
+    }
+
+    #[test]
+    fn test_run_wasm_opt_with_success_returns_ok() {
+        let config = PipelineConfig::default();
+        let fs = MockFileSystem::new();
+        let cmd_executor = MockCommandExecutor::new();
+        cmd_executor.set_exit_code(0);
+
+        let runner = ToolRunner::new(PathBuf::from("/test"), config, fs, cmd_executor);
+
+        let result = runner.run_wasm_opt(Path::new("/test/input.wasm"));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_wasm_snip_with_success_returns_ok() {
+        let config = PipelineConfig::default();
+        let fs = MockFileSystem::new();
+        let cmd_executor = MockCommandExecutor::new();
+        cmd_executor.set_exit_code(0);
+
+        let runner = ToolRunner::new(PathBuf::from("/test"), config, fs, cmd_executor);
+
+        let result = runner.run_wasm_snip(Path::new("/test/input.wasm"));
+        assert!(result.is_ok());
     }
 }

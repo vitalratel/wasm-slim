@@ -108,4 +108,144 @@ mod tests {
         let json = format_json_report(&results).unwrap();
         assert!(json.contains("total_features"));
     }
+
+    #[test]
+    fn test_format_console_report_with_empty_results() {
+        let results = FeatureAnalysisResults {
+            total_features: 5,
+            unused_features: vec![],
+            estimated_savings_kb: 0,
+            recommendations: vec![],
+        };
+
+        let output = format_console_report(&results);
+        assert!(output.is_ok());
+        let text = output.unwrap();
+        assert!(text.contains("Feature Flag Analysis"));
+        assert!(text.contains("Total Features Analyzed: 5"));
+        assert!(text.contains("Potentially Unused: 0"));
+    }
+
+    #[test]
+    fn test_format_console_report_with_unused_features() {
+        use super::super::features::UnusedFeature;
+
+        let results = FeatureAnalysisResults {
+            total_features: 10,
+            unused_features: vec![
+                UnusedFeature {
+                    package: "serde".to_string(),
+                    feature: "derive".to_string(),
+                    enabled_by: "default".to_string(),
+                    estimated_impact_kb: 50,
+                    confidence: "High".to_string(),
+                },
+                UnusedFeature {
+                    package: "tokio".to_string(),
+                    feature: "full".to_string(),
+                    enabled_by: "explicit".to_string(),
+                    estimated_impact_kb: 100,
+                    confidence: "Medium".to_string(),
+                },
+            ],
+            estimated_savings_kb: 150,
+            recommendations: vec![],
+        };
+
+        let output = format_console_report(&results);
+        assert!(output.is_ok());
+        let text = output.unwrap();
+        assert!(text.contains("serde"));
+        assert!(text.contains("derive"));
+        assert!(text.contains("tokio"));
+        assert!(text.contains("High"));
+        assert!(text.contains("Medium"));
+    }
+
+    #[test]
+    fn test_format_console_report_with_recommendations() {
+        let results = FeatureAnalysisResults {
+            total_features: 10,
+            unused_features: vec![],
+            estimated_savings_kb: 20,
+            recommendations: vec![
+                "✅ Use default-features = false".to_string(),
+                "Consider splitting dependencies".to_string(),
+                "Review feature usage".to_string(),
+            ],
+        };
+
+        let output = format_console_report(&results);
+        assert!(output.is_ok());
+        let text = output.unwrap();
+        assert!(text.contains("Recommendations"));
+        assert!(text.contains("default-features = false"));
+        assert!(text.contains("splitting dependencies"));
+    }
+
+    #[test]
+    fn test_format_console_report_with_all_confidence_levels() {
+        use super::super::features::UnusedFeature;
+
+        let results = FeatureAnalysisResults {
+            total_features: 15,
+            unused_features: vec![
+                UnusedFeature {
+                    package: "pkg1".to_string(),
+                    feature: "feat1".to_string(),
+                    enabled_by: "default".to_string(),
+                    estimated_impact_kb: 10,
+                    confidence: "High".to_string(),
+                },
+                UnusedFeature {
+                    package: "pkg2".to_string(),
+                    feature: "feat2".to_string(),
+                    enabled_by: "default".to_string(),
+                    estimated_impact_kb: 20,
+                    confidence: "Medium".to_string(),
+                },
+                UnusedFeature {
+                    package: "pkg3".to_string(),
+                    feature: "feat3".to_string(),
+                    enabled_by: "default".to_string(),
+                    estimated_impact_kb: 5,
+                    confidence: "Low".to_string(),
+                },
+            ],
+            estimated_savings_kb: 35,
+            recommendations: vec![],
+        };
+
+        let output = format_console_report(&results);
+        assert!(output.is_ok());
+        let text = output.unwrap();
+        assert!(text.contains("High"));
+        assert!(text.contains("Medium"));
+        assert!(text.contains("Low"));
+    }
+
+    #[test]
+    fn test_format_json_report_with_unused_features() {
+        use super::super::features::UnusedFeature;
+
+        let results = FeatureAnalysisResults {
+            total_features: 8,
+            unused_features: vec![UnusedFeature {
+                package: "test".to_string(),
+                feature: "test_feature".to_string(),
+                enabled_by: "default".to_string(),
+                estimated_impact_kb: 25,
+                confidence: "High".to_string(),
+            }],
+            estimated_savings_kb: 25,
+            recommendations: vec!["Test recommendation".to_string()],
+        };
+
+        let json = format_json_report(&results).unwrap();
+        assert!(json.contains("total_features"));
+        assert!(json.contains("unused_features"));
+        assert!(json.contains("test"));
+        assert!(json.contains("test_feature"));
+        assert!(json.contains("recommendations"));
+    }
 }

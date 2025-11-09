@@ -60,4 +60,34 @@ mod tests {
         assert!(config.flags.contains(&"-Oz".to_string()));
         assert!(config.flags.contains(&"--strip-debug".to_string()));
     }
+
+    #[test]
+    fn test_wasm_opt_config_default_includes_bulk_memory() {
+        let config = WasmOptConfig::default();
+        assert!(config.flags.contains(&"--enable-bulk-memory".to_string()));
+    }
+
+    #[test]
+    fn test_wasm_opt_config_default_includes_sign_ext() {
+        let config = WasmOptConfig::default();
+        assert!(config.flags.contains(&"--enable-sign-ext".to_string()));
+    }
+
+    #[test]
+    fn test_wasm_bindgen_config_default_disables_debug() {
+        let config = WasmBindgenConfig::default();
+        assert!(!config.debug);
+    }
+
+    #[test]
+    fn test_wasm_bindgen_config_default_removes_producers() {
+        let config = WasmBindgenConfig::default();
+        assert!(config.remove_producers_section);
+    }
+
+    #[test]
+    fn test_wasm_bindgen_config_default_has_empty_flags() {
+        let config = WasmBindgenConfig::default();
+        assert!(config.flags.is_empty());
+    }
 }

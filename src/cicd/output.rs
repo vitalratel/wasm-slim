@@ -250,4 +250,83 @@ mod tests {
         assert!(json.contains("\"size\":"));
         assert!(json.contains("\"kb\": 500"));
     }
+
+    #[test]
+    fn test_size_info_formats_mb_for_large_sizes() {
+        let info = SizeInfo::new(2 * 1024 * 1024); // 2 MB
+        assert_eq!(info.bytes, 2 * 1024 * 1024);
+        assert!(info.formatted.contains("MB"));
+        assert!(info.formatted.contains("2.00"));
+    }
+
+    #[test]
+    fn test_budget_info_from_result_with_over_budget() {
+        let budget = SizeBudget {
+            target_size_kb: Some(100),
+            warn_threshold_kb: None,
+            max_size_kb: Some(150),
+        };
+        let checker = BudgetChecker::new(budget);
+        let result = checker.check(200 * 1024).unwrap(); // 200 KB - over budget
+        let info = BudgetInfo::from_result(&result);
+
+        assert_eq!(info.status, "over_budget");
+        assert!(!info.passed);
+    }
+
+    #[test]
+    fn test_budget_info_from_result_with_warning() {
+        let budget = SizeBudget {
+            target_size_kb: Some(100),
+            warn_threshold_kb: Some(120),
+            max_size_kb: Some(150),
+        };
+        let checker = BudgetChecker::new(budget);
+        let result = checker.check(130 * 1024).unwrap(); // 130 KB - warning
+        let info = BudgetInfo::from_result(&result);
+
+        assert_eq!(info.status, "warning");
+        assert!(info.passed);
+    }
+
+    #[test]
+    fn test_budget_info_from_result_with_above_target() {
+        let budget = SizeBudget {
+            target_size_kb: Some(100),
+            warn_threshold_kb: None,
+            max_size_kb: Some(150),
+        };
+        let checker = BudgetChecker::new(budget);
+        let result = checker.check(110 * 1024).unwrap(); // 110 KB - above target but under max
+        let info = BudgetInfo::from_result(&result);
+
+        assert_eq!(info.status, "above_target");
+        assert!(info.passed);
+    }
+
+    #[test]
+    fn test_regression_info_from_result() {
+        use crate::cicd::history::RegressionResult;
+
+        let result = RegressionResult {
+            is_regression: true,
+            previous_size: 100 * 1024,
+            current_size: 110 * 1024,
+            size_diff: 10 * 1024,
+            percent_change: 10.0,
+        };
+
+        let info = RegressionInfo::from_result(&result);
+        assert!(info.is_regression);
+        assert_eq!(info.previous_bytes, 100 * 1024);
+        assert_eq!(info.diff_bytes, 10 * 1024);
+        assert_eq!(info.percent_change, 10.0);
+    }
+
+    #[test]
+    fn test_json_output_print_does_not_panic() {
+        let output = JsonOutput::new(500 * 1024);
+        // Just verify it doesn't panic
+        output.print();
+    }
 }

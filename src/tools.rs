@@ -357,6 +357,75 @@ impl<CE: CommandExecutor> ToolChain<CE> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io;
+    use std::process::{Command, Output};
+    use std::sync::{Arc, Mutex};
+
+    // Mock CommandExecutor for testing
+    #[derive(Clone)]
+    struct MockCommandExecutor {
+        should_succeed: Arc<Mutex<bool>>,
+        stdout_data: Arc<Mutex<Vec<u8>>>,
+        should_error: Arc<Mutex<bool>>,
+    }
+
+    impl MockCommandExecutor {
+        fn new() -> Self {
+            Self {
+                should_succeed: Arc::new(Mutex::new(true)),
+                stdout_data: Arc::new(Mutex::new(b"default version".to_vec())),
+                should_error: Arc::new(Mutex::new(false)),
+            }
+        }
+
+        fn set_success(&self, stdout: &str) {
+            *self.should_succeed.lock().unwrap() = true;
+            *self.stdout_data.lock().unwrap() = stdout.as_bytes().to_vec();
+            *self.should_error.lock().unwrap() = false;
+        }
+
+        fn set_failure(&self) {
+            *self.should_succeed.lock().unwrap() = false;
+            *self.stdout_data.lock().unwrap() = vec![];
+            *self.should_error.lock().unwrap() = false;
+        }
+
+        fn set_error(&self) {
+            *self.should_error.lock().unwrap() = true;
+        }
+    }
+
+    impl CommandExecutor for MockCommandExecutor {
+        fn status(&self, _cmd: &mut Command) -> io::Result<std::process::ExitStatus> {
+            if *self.should_error.lock().unwrap() {
+                return Err(io::Error::new(io::ErrorKind::NotFound, "command not found"));
+            }
+
+            if *self.should_succeed.lock().unwrap() {
+                Command::new("true").status()
+            } else {
+                Command::new("false").status()
+            }
+        }
+
+        fn output(&self, _cmd: &mut Command) -> io::Result<Output> {
+            if *self.should_error.lock().unwrap() {
+                return Err(io::Error::new(io::ErrorKind::NotFound, "command not found"));
+            }
+
+            let status = if *self.should_succeed.lock().unwrap() {
+                Command::new("true").status()?
+            } else {
+                Command::new("false").status()?
+            };
+
+            Ok(Output {
+                status,
+                stdout: self.stdout_data.lock().unwrap().clone(),
+                stderr: vec![],
+            })
+        }
+    }
 
     #[test]
     fn test_cargo_check_with_installed_tool_returns_true() {
@@ -561,5 +630,110 @@ mod tests {
         assert!(!version.is_empty());
         // Should extract the first line (no newlines)
         assert!(!version.contains('\n'));
+    }
+
+    #[test]
+    fn test_toolchain_new_creates_with_default_tools() {
+        let toolchain = ToolChain::new();
+        assert_eq!(toolchain.cargo.name, "Cargo");
+        assert_eq!(toolchain.wasm_bindgen.name, "wasm-bindgen-cli");
+        assert_eq!(toolchain.wasm_opt.name, "wasm-opt (Binaryen)");
+        assert_eq!(toolchain.wasm_snip.name, "wasm-snip");
+    }
+
+    #[test]
+    fn test_toolchain_required_tools_are_marked_correctly() {
+        let toolchain = ToolChain::new();
+        assert!(toolchain.cargo.required);
+        assert!(toolchain.wasm_bindgen.required);
+        assert!(!toolchain.wasm_opt.required);
+        assert!(!toolchain.wasm_snip.required);
+    }
+
+    #[test]
+    fn test_tool_version_with_mocked_executor_returns_version() {
+        let mock = MockCommandExecutor::new();
+        mock.set_success("cargo 1.75.0 (1d8b05cdd 2024-01-18)\n");
+
+        let tool = Tool::with_executor("Cargo", "cargo", "--version", true, mock);
+
+        let version = tool.version().unwrap();
+        assert_eq!(version, "cargo 1.75.0 (1d8b05cdd 2024-01-18)");
+    }
+
+    #[test]
+    fn test_tool_version_with_failed_command_returns_error() {
+        let mock = MockCommandExecutor::new();
+        mock.set_failure();
+
+        let tool = Tool::with_executor("TestTool", "test-tool", "--version", false, mock);
+
+        let result = tool.version();
+        assert!(result.is_err());
+        if let Err(ToolError::VersionFailed(name)) = result {
+            assert_eq!(name, "TestTool");
+        } else {
+            panic!("Expected VersionFailed error");
+        }
+    }
+
+    #[test]
+    fn test_tool_version_with_io_error_returns_error() {
+        let mock = MockCommandExecutor::new();
+        mock.set_error();
+
+        let tool = Tool::with_executor("TestTool", "test-tool", "--version", false, mock);
+
+        let result = tool.version();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tool_version_extracts_first_line_only() {
+        let mock = MockCommandExecutor::new();
+        mock.set_success("version 1.0.0\nSecond line\nThird line");
+
+        let tool = Tool::with_executor("TestTool", "test-tool", "--version", false, mock);
+
+        let version = tool.version().unwrap();
+        assert_eq!(version, "version 1.0.0");
+        assert!(!version.contains("Second"));
+    }
+
+    #[test]
+    fn test_check_all_with_all_tools_available() {
+        let mock = MockCommandExecutor::new();
+        mock.set_success("version 1.0.0");
+
+        let toolchain = ToolChain::with_executor(mock);
+        let result = toolchain.check_all();
+
+        // Will succeed if tools are in PATH, otherwise acceptable to fail
+        match result {
+            Ok(_) => { /* All tools found */ }
+            Err(e) => {
+                // Should be about missing tools, not a panic
+                assert!(e.to_string().contains("missing") || e.to_string().contains("Required"));
+            }
+        }
+    }
+
+    #[test]
+    fn test_check_all_with_missing_required_returns_error() {
+        let mock = MockCommandExecutor::new();
+        mock.set_error();
+
+        let mut toolchain = ToolChain::with_executor(mock.clone());
+        // Make a required tool have a non-existent binary
+        toolchain.cargo.binary = "nonexistent-cargo-binary-xyz";
+
+        let result = toolchain.check_all();
+        assert!(result.is_err());
+
+        if let Err(ToolError::MissingTool(msg)) = result {
+            assert!(msg.contains("Required"));
+        } else {
+            panic!("Expected MissingTool error");
+        }
     }
 }

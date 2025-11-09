@@ -144,6 +144,74 @@ fn present_json_report(metrics: &crate::pipeline::SizeMetrics) -> Result<()> {
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+    use crate::pipeline::SizeMetrics;
+
+    #[test]
+    fn test_present_dry_run_info_with_empty_list() {
+        // Should not panic with empty list
+        present_dry_run_info(&[]);
+    }
+
+    #[test]
+    fn test_present_dry_run_info_with_files() {
+        let files = vec!["Cargo.toml".to_string(), "src/lib/Cargo.toml".to_string()];
+        // Should not panic with files
+        present_dry_run_info(&files);
+    }
+
+    #[test]
+    fn test_present_cargo_changes_with_empty_list() {
+        present_cargo_changes(&[]);
+    }
+
+    #[test]
+    fn test_present_cargo_changes_with_changes() {
+        let changes = vec![
+            "Added opt-level = 'z'".to_string(),
+            "Added lto = true".to_string(),
+        ];
+        present_cargo_changes(&changes);
+    }
+
+    #[test]
+    fn test_present_build_results_displays_metrics() {
+        let metrics = SizeMetrics {
+            before_bytes: 2000,
+            after_bytes: 1000,
+        };
+        present_build_results(&metrics);
+    }
+
+    #[test]
+    fn test_present_build_results_with_zero_reduction() {
+        let metrics = SizeMetrics {
+            before_bytes: 1000,
+            after_bytes: 1000,
+        };
+        present_build_results(&metrics);
+    }
+
+    #[test]
+    fn test_present_budget_check_with_passed() {
+        present_budget_check(Some(true), Some(2000));
+    }
+
+    #[test]
+    fn test_present_budget_check_with_none() {
+        present_budget_check(None, None);
+    }
+
+    #[test]
+    fn test_present_json_report_generates_valid_json() {
+        let metrics = SizeMetrics {
+            before_bytes: 2000,
+            after_bytes: 1500,
+        };
+        let result = present_json_report(&metrics);
+        assert!(result.is_ok());
+    }
+
     #[test]
     fn test_format_bytes_via_shared_module() {
         use crate::fmt::format_bytes;

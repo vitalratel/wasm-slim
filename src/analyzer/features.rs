@@ -330,6 +330,7 @@ impl<CE: CommandExecutor> FeatureAnalyzer<CE> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_is_commonly_unused_feature_identifies_known_features() {
@@ -377,5 +378,118 @@ mod tests {
         let recs = analyzer.generate_recommendations(&unused);
         assert!(!recs.is_empty());
         assert!(recs[0].contains("default-features = false"));
+    }
+
+    #[test]
+    fn test_unused_feature_creation() {
+        let feature = UnusedFeature {
+            package: "test-pkg".to_string(),
+            feature: "test-feature".to_string(),
+            enabled_by: "default".to_string(),
+            estimated_impact_kb: 100,
+            confidence: "High".to_string(),
+        };
+
+        assert_eq!(feature.package, "test-pkg");
+        assert_eq!(feature.feature, "test-feature");
+        assert_eq!(feature.estimated_impact_kb, 100);
+    }
+
+    #[test]
+    fn test_feature_analysis_results_creation() {
+        let results = FeatureAnalysisResults {
+            total_features: 10,
+            unused_features: vec![],
+            estimated_savings_kb: 0,
+            recommendations: vec!["test".to_string()],
+        };
+
+        assert_eq!(results.total_features, 10);
+        assert_eq!(results.unused_features.len(), 0);
+        assert_eq!(results.recommendations.len(), 1);
+    }
+
+    #[test]
+    fn test_is_commonly_unused_feature_with_various_packages() {
+        let analyzer = FeatureAnalyzer::new(".");
+
+        // Test the function can be called with different inputs
+        let _result1 = analyzer.is_commonly_unused_feature("tokio", "fs");
+        let _result2 = analyzer.is_commonly_unused_feature("regex", "unicode");
+        let _result3 = analyzer.is_commonly_unused_feature("unknown", "feature");
+
+        // Test passes if no panic occurs
+    }
+
+    #[test]
+    fn test_estimate_feature_impact_for_known_packages() {
+        let analyzer = FeatureAnalyzer::new(".");
+
+        // Large features should have higher impact
+        let unicode_impact = analyzer.estimate_feature_impact("regex", "unicode");
+        let small_impact = analyzer.estimate_feature_impact("unknown", "unknown");
+
+        assert!(unicode_impact > small_impact);
+    }
+
+    #[test]
+    fn test_get_confidence_level_for_different_packages() {
+        let analyzer = FeatureAnalyzer::new(".");
+
+        // Test that the function returns valid confidence levels
+        let level1 = analyzer.get_confidence_level("regex", "unicode");
+        let level2 = analyzer.get_confidence_level("tokio", "fs");
+        let level3 = analyzer.get_confidence_level("unknown", "unknown");
+
+        // Verify the levels are one of the expected values
+        assert!(["High", "Medium", "Low"].contains(&level1.as_str()));
+        assert!(["High", "Medium", "Low"].contains(&level2.as_str()));
+        assert!(["High", "Medium", "Low"].contains(&level3.as_str()));
+    }
+
+    #[test]
+    fn test_generate_recommendations_with_multiple_unused_features() {
+        let analyzer = FeatureAnalyzer::new(".");
+
+        let unused = vec![
+            UnusedFeature {
+                package: "tokio".to_string(),
+                feature: "fs".to_string(),
+                enabled_by: "default".to_string(),
+                estimated_impact_kb: 100,
+                confidence: "High".to_string(),
+            },
+            UnusedFeature {
+                package: "regex".to_string(),
+                feature: "unicode".to_string(),
+                enabled_by: "default".to_string(),
+                estimated_impact_kb: 200,
+                confidence: "High".to_string(),
+            },
+        ];
+
+        let recs = analyzer.generate_recommendations(&unused);
+        assert!(!recs.is_empty());
+    }
+
+    #[test]
+    fn test_generate_recommendations_with_empty_list() {
+        let analyzer = FeatureAnalyzer::new(".");
+        let recs = analyzer.generate_recommendations(&[]);
+
+        // Should still provide general recommendations
+        assert!(!recs.is_empty());
+    }
+
+    #[test]
+    fn test_feature_analyzer_new_with_different_paths() {
+        let analyzer1 = FeatureAnalyzer::new(".");
+        let analyzer2 = FeatureAnalyzer::new("/tmp");
+        let analyzer3 = FeatureAnalyzer::new("relative/path");
+
+        // All should be created successfully
+        assert_eq!(analyzer1.project_root, PathBuf::from("."));
+        assert_eq!(analyzer2.project_root, PathBuf::from("/tmp"));
+        assert_eq!(analyzer3.project_root, PathBuf::from("relative/path"));
     }
 }

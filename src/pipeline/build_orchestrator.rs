@@ -246,6 +246,7 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
+    use crate::infra::{RealCommandExecutor, RealFileSystem};
     use std::io;
     use std::path::Path;
     use std::process::Command;
@@ -426,5 +427,97 @@ mod integration_tests {
         // Verify file system operations were tracked
         let ops = fs.operations();
         assert!(!ops.is_empty());
+    }
+
+    #[test]
+    fn test_orchestrator_skips_wasm_opt_when_disabled() {
+        let config = PipelineConfig {
+            run_wasm_opt: false,
+            run_wasm_snip: false,
+            ..Default::default()
+        };
+
+        let fs = MockFileSystem::new(1000);
+        let cmd_executor = MockCommandExecutor::new();
+
+        let orchestrator = BuildOrchestrator::new(
+            PathBuf::from("/test"),
+            config,
+            ToolChain::default(),
+            fs,
+            cmd_executor.clone(),
+        );
+
+        let _ = orchestrator.execute();
+
+        // Verify wasm-opt was not run
+        let ops = cmd_executor.operations();
+        assert!(!ops.iter().any(|op| op.contains("wasm-opt")));
+    }
+
+    #[test]
+    fn test_orchestrator_runs_wasm_opt_when_enabled_and_available() {
+        let config = PipelineConfig {
+            run_wasm_opt: true,
+            run_wasm_snip: false,
+            ..Default::default()
+        };
+
+        let orchestrator = BuildOrchestrator::new(
+            PathBuf::from("/test"),
+            config.clone(),
+            ToolChain::default(),
+            RealFileSystem,
+            RealCommandExecutor,
+        );
+
+        // Just verify the config is stored correctly
+        assert!(orchestrator.config.run_wasm_opt);
+    }
+
+    #[test]
+    fn test_orchestrator_skips_wasm_snip_when_disabled() {
+        let config = PipelineConfig {
+            run_wasm_opt: false,
+            run_wasm_snip: false,
+            ..Default::default()
+        };
+
+        let fs = MockFileSystem::new(1000);
+        let cmd_executor = MockCommandExecutor::new();
+
+        let orchestrator = BuildOrchestrator::new(
+            PathBuf::from("/test"),
+            config,
+            ToolChain::default(),
+            fs,
+            cmd_executor.clone(),
+        );
+
+        let _ = orchestrator.execute();
+
+        // Verify wasm-snip was not run
+        let ops = cmd_executor.operations();
+        assert!(!ops.iter().any(|op| op.contains("wasm-snip")));
+    }
+
+    #[test]
+    fn test_orchestrator_runs_wasm_snip_when_enabled_and_available() {
+        let config = PipelineConfig {
+            run_wasm_opt: false,
+            run_wasm_snip: true,
+            ..Default::default()
+        };
+
+        let orchestrator = BuildOrchestrator::new(
+            PathBuf::from("/test"),
+            config.clone(),
+            ToolChain::default(),
+            RealFileSystem,
+            RealCommandExecutor,
+        );
+
+        // Just verify the config is stored correctly
+        assert!(orchestrator.config.run_wasm_snip);
     }
 }

@@ -459,4 +459,128 @@ mod tests {
         // Should not error when only partial data is present
         assert!(result.valid);
     }
+
+    #[test]
+    fn test_validation_severity_ordering() {
+        assert!(ValidationSeverity::Error > ValidationSeverity::Warning);
+        assert!(ValidationSeverity::Warning > ValidationSeverity::Info);
+        assert!(ValidationSeverity::Info < ValidationSeverity::Warning);
+    }
+
+    #[test]
+    fn test_validation_issue_with_all_severities() {
+        let error = ValidationIssue {
+            severity: ValidationSeverity::Error,
+            field: "test_field".to_string(),
+            message: "Error message".to_string(),
+            suggestion: None,
+        };
+        assert_eq!(error.severity, ValidationSeverity::Error);
+
+        let warning = ValidationIssue {
+            severity: ValidationSeverity::Warning,
+            field: "test_field".to_string(),
+            message: "Warning message".to_string(),
+            suggestion: None,
+        };
+        assert_eq!(warning.severity, ValidationSeverity::Warning);
+
+        let info = ValidationIssue {
+            severity: ValidationSeverity::Info,
+            field: "test_field".to_string(),
+            message: "Info message".to_string(),
+            suggestion: None,
+        };
+        assert_eq!(info.severity, ValidationSeverity::Info);
+    }
+
+    #[test]
+    fn test_validation_result_is_valid_with_no_issues() {
+        let result = ValidationResult::success();
+        assert!(result.valid);
+        assert!(!result.has_errors());
+    }
+
+    #[test]
+    fn test_validation_result_has_errors() {
+        let mut result = ValidationResult::success();
+        result.add_issue(ValidationIssue {
+            severity: ValidationSeverity::Error,
+            field: "field".to_string(),
+            message: "Error".to_string(),
+            suggestion: None,
+        });
+
+        assert!(result.has_errors());
+        assert!(!result.valid);
+    }
+
+    #[test]
+    fn test_validation_result_has_warnings_only() {
+        let mut result = ValidationResult::success();
+        result.add_issue(ValidationIssue {
+            severity: ValidationSeverity::Warning,
+            field: "field".to_string(),
+            message: "Warning".to_string(),
+            suggestion: None,
+        });
+
+        assert!(!result.warnings().is_empty());
+        assert!(!result.has_errors());
+        assert!(result.valid); // Valid despite warnings
+    }
+
+    #[test]
+    fn test_validation_result_with_mixed_severities() {
+        let mut result = ValidationResult::success();
+        result.add_issue(ValidationIssue {
+            severity: ValidationSeverity::Error,
+            field: "field1".to_string(),
+            message: "Error".to_string(),
+            suggestion: None,
+        });
+        result.add_issue(ValidationIssue {
+            severity: ValidationSeverity::Warning,
+            field: "field2".to_string(),
+            message: "Warning".to_string(),
+            suggestion: None,
+        });
+        result.add_issue(ValidationIssue {
+            severity: ValidationSeverity::Info,
+            field: "field3".to_string(),
+            message: "Info".to_string(),
+            suggestion: None,
+        });
+
+        assert!(result.has_errors());
+        assert!(!result.warnings().is_empty());
+        assert!(!result.valid);
+        assert_eq!(result.issues.len(), 3);
+    }
+
+    #[test]
+    fn test_validation_result_failure_constructor() {
+        let result = ValidationResult::failure(vec![ValidationIssue {
+            severity: ValidationSeverity::Error,
+            field: "test".to_string(),
+            message: "Error".to_string(),
+            suggestion: None,
+        }]);
+
+        assert!(!result.valid);
+        assert!(result.has_errors());
+    }
+
+    #[test]
+    fn test_validation_issue_field_and_message() {
+        let issue = ValidationIssue {
+            severity: ValidationSeverity::Error,
+            field: "test_field_name".to_string(),
+            message: "Test error message".to_string(),
+            suggestion: None,
+        };
+
+        assert_eq!(issue.field, "test_field_name");
+        assert_eq!(issue.message, "Test error message");
+    }
 }

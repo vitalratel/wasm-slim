@@ -286,6 +286,7 @@ impl BuildWorkflow {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn test_build_workflow_new_with_different_paths() {
@@ -472,5 +473,115 @@ mod tests {
     fn test_build_workflow_can_be_created() {
         let workflow = BuildWorkflow::new(Path::new("/tmp"));
         assert_eq!(workflow.project_root, PathBuf::from("/tmp"));
+    }
+
+    #[test]
+    fn test_rollback_cargo_tomls_restores_content() {
+        use std::fs;
+        use tempfile::NamedTempFile;
+
+        let workflow = BuildWorkflow::new(Path::new("/tmp"));
+
+        // Create temporary files with original content
+        let temp_file1 = NamedTempFile::new().unwrap();
+        let temp_file2 = NamedTempFile::new().unwrap();
+
+        let original_content1 = "original content 1";
+        let original_content2 = "original content 2";
+
+        fs::write(temp_file1.path(), "modified").unwrap();
+        fs::write(temp_file2.path(), "modified").unwrap();
+
+        let backups = vec![
+            (
+                temp_file1.path().to_path_buf(),
+                original_content1.to_string(),
+            ),
+            (
+                temp_file2.path().to_path_buf(),
+                original_content2.to_string(),
+            ),
+        ];
+
+        // Test rollback
+        let result = workflow.rollback_cargo_tomls(&backups);
+        assert!(result.is_ok());
+
+        // Verify content restored
+        assert_eq!(
+            fs::read_to_string(temp_file1.path()).unwrap(),
+            original_content1
+        );
+        assert_eq!(
+            fs::read_to_string(temp_file2.path()).unwrap(),
+            original_content2
+        );
+    }
+
+    #[test]
+    fn test_rollback_cargo_tomls_with_empty_backups() {
+        let workflow = BuildWorkflow::new(Path::new("/tmp"));
+        let backups = [];
+
+        let result = workflow.rollback_cargo_tomls(&backups);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_build_result_debug_format() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec!["test".to_string()],
+            metrics: SizeMetrics {
+                before_bytes: 1000,
+                after_bytes: 800,
+            },
+            budget_check_passed: None,
+            budget_threshold: None,
+            dry_run: false,
+            dry_run_files: vec![],
+        };
+
+        // Verify Debug trait is implemented
+        let debug_str = format!("{:?}", result);
+        assert!(debug_str.contains("BuildResult"));
+    }
+
+    #[test]
+    fn test_build_result_all_fields() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec!["opt-level=z".to_string(), "lto=true".to_string()],
+            metrics: SizeMetrics {
+                before_bytes: 5000,
+                after_bytes: 3000,
+            },
+            budget_check_passed: Some(true),
+            budget_threshold: Some(4000),
+            dry_run: true,
+            dry_run_files: vec!["Cargo.toml".to_string()],
+        };
+
+        assert_eq!(result.cargo_changes.len(), 2);
+        assert_eq!(result.metrics.before_bytes, 5000);
+        assert_eq!(result.metrics.after_bytes, 3000);
+        assert_eq!(result.budget_check_passed, Some(true));
+        assert_eq!(result.budget_threshold, Some(4000));
+        assert!(result.dry_run);
+        assert_eq!(result.dry_run_files.len(), 1);
+    }
+
+    #[test]
+    fn test_optimization_result_type_alias() {
+        // Test that OptimizationResult type is correctly defined
+        let _result: OptimizationResult = (
+            vec!["change".to_string()],
+            vec!["file.toml".to_string()],
+            vec![(PathBuf::from("/backup"), "content".to_string())],
+        );
+
+        // Type checking passes means the alias is correct
     }
 }
