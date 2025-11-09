@@ -598,7 +598,6 @@ build-std = ["std", "panic_abort"]
     }
 
     #[test]
-    #[ignore = "Fails when running as root in Docker/CI containers"]
     fn test_readonly_directory_returns_io_error() {
         let temp_dir = TempDir::new().unwrap();
         let cargo_dir = temp_dir.path().join(".cargo");

@@ -12,6 +12,7 @@ use wasm_slim::bench_tracker::{BenchmarkTracker, PerformanceBudget};
 #[derive(Parser)]
 #[command(name = "bench-tracker")]
 #[command(about = "Performance tracking tool for wasm-slim benchmarks")]
+#[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -299,5 +300,97 @@ fn format_ns(ns: u64) -> String {
         format!("{:.2} ms", ns as f64 / 1_000_000.0)
     } else {
         format!("{:.2} s", ns as f64 / 1_000_000_000.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::SystemTime;
+
+    #[test]
+    fn test_format_timestamp_future() {
+        // Far future timestamp
+        let future = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + 86400; // 1 day in future
+        assert_eq!(format_timestamp(future), "future");
+    }
+
+    #[test]
+    fn test_format_timestamp_just_now() {
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let result = format_timestamp(now);
+        assert_eq!(result, "just now");
+    }
+
+    #[test]
+    fn test_format_timestamp_minutes() {
+        let two_minutes_ago = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - 120;
+        let result = format_timestamp(two_minutes_ago);
+        assert!(result.contains("minutes ago"));
+    }
+
+    #[test]
+    fn test_format_timestamp_hours() {
+        let two_hours_ago = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - 7200;
+        let result = format_timestamp(two_hours_ago);
+        assert!(result.contains("hours ago"));
+    }
+
+    #[test]
+    fn test_format_timestamp_days() {
+        let two_days_ago = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - 172800;
+        let result = format_timestamp(two_days_ago);
+        assert!(result.contains("days ago"));
+    }
+
+    #[test]
+    fn test_format_ns_nanoseconds() {
+        assert_eq!(format_ns(500), "500 ns");
+        assert_eq!(format_ns(999), "999 ns");
+    }
+
+    #[test]
+    fn test_format_ns_microseconds() {
+        assert_eq!(format_ns(1_000), "1.00 µs");
+        assert_eq!(format_ns(1_500), "1.50 µs");
+        assert_eq!(format_ns(999_999), "1000.00 µs");
+    }
+
+    #[test]
+    fn test_format_ns_milliseconds() {
+        assert_eq!(format_ns(1_000_000), "1.00 ms");
+        assert_eq!(format_ns(1_500_000), "1.50 ms");
+        assert_eq!(format_ns(999_999_999), "1000.00 ms");
+    }
+
+    #[test]
+    fn test_format_ns_seconds() {
+        assert_eq!(format_ns(1_000_000_000), "1.00 s");
+        assert_eq!(format_ns(2_500_000_000), "2.50 s");
+    }
+
+    #[test]
+    fn test_format_ns_boundary_values() {
+        assert_eq!(format_ns(0), "0 ns");
+        assert_eq!(format_ns(1), "1 ns");
     }
 }

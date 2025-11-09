@@ -288,6 +288,187 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_build_workflow_new_with_different_paths() {
+        let paths = vec![
+            Path::new("/tmp"),
+            Path::new("/home/user/project"),
+            Path::new("."),
+            Path::new("./relative/path"),
+        ];
+
+        for path in paths {
+            let workflow = BuildWorkflow::new(path);
+            assert_eq!(workflow.project_root, PathBuf::from(path));
+        }
+    }
+
+    #[test]
+    fn test_build_workflow_stores_project_root() {
+        let root = Path::new("/test/project");
+        let workflow = BuildWorkflow::new(root);
+        assert_eq!(workflow.project_root, root);
+    }
+
+    #[test]
+    fn test_build_result_can_be_created() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec!["test".to_string()],
+            metrics: SizeMetrics {
+                before_bytes: 1000,
+                after_bytes: 800,
+            },
+            budget_check_passed: None,
+            budget_threshold: None,
+            dry_run: false,
+            dry_run_files: vec![],
+        };
+        assert_eq!(result.cargo_changes.len(), 1);
+        assert_eq!(result.metrics.before_bytes, 1000);
+        assert_eq!(result.metrics.after_bytes, 800);
+    }
+
+    #[test]
+    fn test_build_result_with_budget_check() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec![],
+            metrics: SizeMetrics {
+                before_bytes: 2000,
+                after_bytes: 1500,
+            },
+            budget_check_passed: Some(true),
+            budget_threshold: Some(2000),
+            dry_run: false,
+            dry_run_files: vec![],
+        };
+        assert_eq!(result.budget_check_passed, Some(true));
+        assert_eq!(result.budget_threshold, Some(2000));
+    }
+
+    #[test]
+    fn test_build_result_with_failed_budget() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec![],
+            metrics: SizeMetrics {
+                before_bytes: 1000,
+                after_bytes: 2500,
+            },
+            budget_check_passed: Some(false),
+            budget_threshold: Some(2000),
+            dry_run: false,
+            dry_run_files: vec![],
+        };
+        assert_eq!(result.budget_check_passed, Some(false));
+        assert!(result.metrics.after_bytes > result.budget_threshold.unwrap());
+    }
+
+    #[test]
+    fn test_build_result_dry_run_mode() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec![],
+            metrics: SizeMetrics {
+                before_bytes: 1000,
+                after_bytes: 1000,
+            },
+            budget_check_passed: None,
+            budget_threshold: None,
+            dry_run: true,
+            dry_run_files: vec!["file1.toml".to_string(), "file2.toml".to_string()],
+        };
+        assert!(result.dry_run);
+        assert_eq!(result.dry_run_files.len(), 2);
+    }
+
+    #[test]
+    fn test_build_result_with_multiple_cargo_changes() {
+        use crate::pipeline::SizeMetrics;
+
+        let result = BuildResult {
+            cargo_changes: vec![
+                "change1".to_string(),
+                "change2".to_string(),
+                "change3".to_string(),
+            ],
+            metrics: SizeMetrics {
+                before_bytes: 2000,
+                after_bytes: 1000,
+            },
+            budget_check_passed: None,
+            budget_threshold: None,
+            dry_run: false,
+            dry_run_files: vec![],
+        };
+        assert_eq!(result.cargo_changes.len(), 3);
+        assert!(result.metrics.before_bytes > result.metrics.after_bytes);
+    }
+
+    #[test]
+    fn test_optimization_result_empty_tuple() {
+        let result: OptimizationResult = (vec![], vec![], vec![]);
+        assert!(result.0.is_empty());
+        assert!(result.1.is_empty());
+        assert!(result.2.is_empty());
+    }
+
+    #[test]
+    fn test_optimization_result_with_changes() {
+        let result: OptimizationResult = (
+            vec!["change1".to_string(), "change2".to_string()],
+            vec![],
+            vec![],
+        );
+        assert_eq!(result.0.len(), 2);
+        assert!(result.1.is_empty());
+        assert!(result.2.is_empty());
+    }
+
+    #[test]
+    fn test_optimization_result_with_dry_run_files() {
+        let result: OptimizationResult = (
+            vec![],
+            vec!["file1.toml".to_string(), "file2.toml".to_string()],
+            vec![],
+        );
+        assert!(result.0.is_empty());
+        assert_eq!(result.1.len(), 2);
+        assert!(result.2.is_empty());
+    }
+
+    #[test]
+    fn test_optimization_result_with_backups() {
+        let result: OptimizationResult = (
+            vec![],
+            vec![],
+            vec![
+                (PathBuf::from("/path/backup1"), "content1".to_string()),
+                (PathBuf::from("/path/backup2"), "content2".to_string()),
+            ],
+        );
+        assert!(result.0.is_empty());
+        assert!(result.1.is_empty());
+        assert_eq!(result.2.len(), 2);
+    }
+
+    #[test]
+    fn test_optimization_result_complete() {
+        let result: OptimizationResult = (
+            vec!["change".to_string()],
+            vec!["file.toml".to_string()],
+            vec![(PathBuf::from("/backup"), "content".to_string())],
+        );
+        assert_eq!(result.0.len(), 1);
+        assert_eq!(result.1.len(), 1);
+        assert_eq!(result.2.len(), 1);
+    }
+
+    #[test]
     fn test_build_workflow_can_be_created() {
         let workflow = BuildWorkflow::new(Path::new("/tmp"));
         assert_eq!(workflow.project_root, PathBuf::from("/tmp"));

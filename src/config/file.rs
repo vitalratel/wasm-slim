@@ -267,7 +267,6 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    #[ignore = "Fails when running as root in Docker/CI containers"]
     fn test_config_file_save_with_readonly_directory_returns_error() {
         use std::os::unix::fs::PermissionsExt;
 
@@ -357,7 +356,6 @@ profile = "not a table"
 
     #[test]
     #[cfg(unix)]
-    #[ignore = "Fails when running as root in Docker/CI containers"]
     fn test_config_file_load_with_unreadable_file_returns_error() {
         use std::os::unix::fs::PermissionsExt;
 

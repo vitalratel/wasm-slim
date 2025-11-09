@@ -99,4 +99,203 @@ mod tests {
             .expect("Should handle missing estimates gracefully");
         assert_eq!(results.len(), 0);
     }
+
+    #[test]
+    fn test_parse_criterion_results_with_valid_data() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let bench_dir = criterion_dir.join("test_bench");
+        let base_dir = bench_dir.join("base");
+        std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+        let estimates_json = r#"{
+            "mean": {
+                "point_estimate": 12345.67,
+                "standard_error": 123.45
+            }
+        }"#;
+        std::fs::write(base_dir.join("estimates.json"), estimates_json)
+            .expect("Failed to write estimates");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should parse valid estimates");
+        assert_eq!(results.len(), 1);
+        assert!(results.contains_key("test_bench"));
+
+        let result = &results["test_bench"];
+        assert_eq!(result.name, "test_bench");
+        assert_eq!(result.mean_ns, 12345);
+        assert_eq!(result.stddev_ns, 123);
+    }
+
+    #[test]
+    fn test_parse_criterion_results_multiple_benchmarks() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        // Create two benchmark results
+        for bench_name in &["bench1", "bench2"] {
+            let bench_dir = criterion_dir.join(bench_name);
+            let base_dir = bench_dir.join("base");
+            std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+            let estimates_json = r#"{
+                "mean": {
+                    "point_estimate": 5000.0,
+                    "standard_error": 50.0
+                }
+            }"#;
+            std::fs::write(base_dir.join("estimates.json"), estimates_json)
+                .expect("Failed to write estimates");
+        }
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should parse multiple benchmarks");
+        assert_eq!(results.len(), 2);
+        assert!(results.contains_key("bench1"));
+        assert!(results.contains_key("bench2"));
+    }
+
+    #[test]
+    fn test_parse_criterion_results_with_missing_mean() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let bench_dir = criterion_dir.join("test_bench");
+        let base_dir = bench_dir.join("base");
+        std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+        // Missing "mean" field
+        let estimates_json = r#"{"median": {"point_estimate": 1000.0}}"#;
+        std::fs::write(base_dir.join("estimates.json"), estimates_json)
+            .expect("Failed to write estimates");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should handle missing mean gracefully");
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_criterion_results_with_incomplete_mean() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let bench_dir = criterion_dir.join("test_bench");
+        let base_dir = bench_dir.join("base");
+        std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+        // Missing "standard_error" field
+        let estimates_json = r#"{"mean": {"point_estimate": 1000.0}}"#;
+        std::fs::write(base_dir.join("estimates.json"), estimates_json)
+            .expect("Failed to write estimates");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should handle incomplete mean gracefully");
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_criterion_results_with_invalid_json() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let bench_dir = criterion_dir.join("test_bench");
+        let base_dir = bench_dir.join("base");
+        std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+        // Invalid JSON
+        let estimates_json = "not valid json {";
+        std::fs::write(base_dir.join("estimates.json"), estimates_json)
+            .expect("Failed to write estimates");
+
+        let result = parser.parse_criterion_results(&criterion_dir);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_criterion_results_empty_directory() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should handle empty directory");
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_criterion_results_mixed_valid_invalid() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        // Valid benchmark
+        let bench1_dir = criterion_dir.join("valid_bench");
+        let base1_dir = bench1_dir.join("base");
+        std::fs::create_dir_all(&base1_dir).expect("Failed to create base dir");
+        std::fs::write(
+            base1_dir.join("estimates.json"),
+            r#"{"mean": {"point_estimate": 1000.0, "standard_error": 10.0}}"#,
+        )
+        .expect("Failed to write estimates");
+
+        // Invalid benchmark (missing estimates.json)
+        let bench2_dir = criterion_dir.join("invalid_bench");
+        std::fs::create_dir_all(&bench2_dir).expect("Failed to create bench dir");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should parse valid benchmarks and skip invalid ones");
+        assert_eq!(results.len(), 1);
+        assert!(results.contains_key("valid_bench"));
+    }
+
+    #[test]
+    fn test_parse_criterion_results_with_non_numeric_values() {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let parser = BenchmarkParser::new(RealFileSystem);
+
+        let criterion_dir = temp_dir.path().join("criterion");
+        std::fs::create_dir_all(&criterion_dir).expect("Failed to create criterion dir");
+
+        let bench_dir = criterion_dir.join("test_bench");
+        let base_dir = bench_dir.join("base");
+        std::fs::create_dir_all(&base_dir).expect("Failed to create base dir");
+
+        // Non-numeric values
+        let estimates_json =
+            r#"{"mean": {"point_estimate": "not a number", "standard_error": 10.0}}"#;
+        std::fs::write(base_dir.join("estimates.json"), estimates_json)
+            .expect("Failed to write estimates");
+
+        let results = parser
+            .parse_criterion_results(&criterion_dir)
+            .expect("Should handle non-numeric values gracefully");
+        assert_eq!(results.len(), 0);
+    }
 }

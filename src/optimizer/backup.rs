@@ -197,7 +197,6 @@ mod tests {
 
         #[test]
         #[cfg(unix)]
-        #[ignore = "Fails when running as root in Docker/CI containers"]
         fn test_create_backup_with_readonly_backup_dir_returns_error() {
             use std::os::unix::fs::PermissionsExt;
 
@@ -343,6 +342,64 @@ mod tests {
             let paths: Vec<_> = results.iter().filter_map(|r| r.as_ref().ok()).collect();
             let unique_paths: std::collections::HashSet<_> = paths.iter().collect();
             assert_eq!(paths.len(), unique_paths.len());
+        }
+
+        #[test]
+        fn test_format_timestamp_returns_nonempty_string() {
+            let ts = format_timestamp().unwrap();
+            assert!(!ts.is_empty());
+        }
+
+        #[test]
+        fn test_format_timestamp_contains_expected_separators() {
+            let ts = format_timestamp().unwrap();
+            // Should contain underscores separating date and time components
+            assert!(ts.contains('_'));
+        }
+
+        #[test]
+        fn test_format_timestamp_has_correct_format() {
+            let ts = format_timestamp().unwrap();
+            // Format should be YYYYMMDD_HHMMSS.mmm
+            // Should contain underscore and dot
+            assert!(ts.contains('_'));
+            assert!(ts.contains('.'));
+        }
+
+        #[test]
+        fn test_backup_error_copy_file_display() {
+            let error = BackupError::CopyFile("/path".to_string());
+            let display_str = format!("{}", error);
+            assert!(!display_str.is_empty());
+            assert!(display_str.contains("Failed to copy file"));
+        }
+
+        #[test]
+        fn test_backup_error_copy_file_variant() {
+            let error = BackupError::CopyFile("/missing/file".to_string());
+            match error {
+                BackupError::CopyFile(path) => assert_eq!(path, "/missing/file"),
+                _ => panic!("Expected CopyFile variant"),
+            }
+        }
+
+        #[test]
+        fn test_backup_manager_new_with_temp_dir() {
+            use tempfile::TempDir;
+            let temp = TempDir::new().unwrap();
+            let manager = BackupManager::new(temp.path());
+            // BackupManager::new appends ".wasm-slim/backups" to the path
+            let expected = temp.path().join(".wasm-slim").join("backups");
+            assert_eq!(manager.backup_dir, expected);
+        }
+
+        #[test]
+        fn test_backup_manager_backup_dir_stored_correctly() {
+            let project_root = PathBuf::from("/test/backup");
+            let manager = BackupManager::<RealFileSystem>::new(&project_root);
+            // BackupManager::new appends ".wasm-slim/backups" to the path
+            let expected = project_root.join(".wasm-slim").join("backups");
+            assert_eq!(manager.backup_dir, expected);
         }
     }
 }

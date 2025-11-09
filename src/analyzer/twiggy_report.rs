@@ -304,11 +304,289 @@ fn format_number(n: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyzer::twiggy::analysis_types::{
+        AnalysisItem, AnalysisResults, MonomorphizationGroup,
+    };
+    use crate::analyzer::twiggy::comparison::{ChangeItem, ComparisonResults};
 
     #[test]
     fn test_format_number_adds_thousand_separators() {
         assert_eq!(format_number(123), "123");
         assert_eq!(format_number(1234), "1,234");
         assert_eq!(format_number(1234567), "1,234,567");
+    }
+
+    #[test]
+    fn test_format_number_edge_cases() {
+        assert_eq!(format_number(0), "0");
+        assert_eq!(format_number(1), "1");
+        assert_eq!(format_number(999), "999");
+        assert_eq!(format_number(1000), "1,000");
+    }
+
+    #[test]
+    fn test_print_analysis_report_basic() {
+        let results = AnalysisResults {
+            total_size_bytes: 1_048_576, // 1 MB
+            mode: "top".to_string(),
+            items: vec![
+                AnalysisItem {
+                    name: "function_a".to_string(),
+                    size_bytes: 524_288,
+                    percentage: 50.0,
+                },
+                AnalysisItem {
+                    name: "function_b".to_string(),
+                    size_bytes: 262_144,
+                    percentage: 25.0,
+                },
+            ],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        // Should not panic
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_empty_items() {
+        let results = AnalysisResults {
+            total_size_bytes: 1_048_576,
+            mode: "top".to_string(),
+            items: vec![],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_with_mono_groups() {
+        let results = AnalysisResults {
+            total_size_bytes: 2_097_152, // 2 MB
+            mode: "monos".to_string(),
+            items: vec![],
+            mono_groups: Some(vec![
+                MonomorphizationGroup {
+                    function_name: "Vec::push".to_string(),
+                    instantiation_count: 5,
+                    total_size_bytes: 10_240,
+                    avg_size_bytes: 2_048,
+                    potential_savings_bytes: 8_192,
+                    instantiations: vec![],
+                },
+                MonomorphizationGroup {
+                    function_name: "Option::unwrap".to_string(),
+                    instantiation_count: 3,
+                    total_size_bytes: 6_144,
+                    avg_size_bytes: 2_048,
+                    potential_savings_bytes: 4_096,
+                    instantiations: vec![],
+                },
+            ]),
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_large_item_count() {
+        let mut items = Vec::new();
+        for i in 0..30 {
+            items.push(AnalysisItem {
+                name: format!("function_{}", i),
+                size_bytes: 1000 * (30 - i),
+                percentage: 1.0,
+            });
+        }
+
+        let results = AnalysisResults {
+            total_size_bytes: 100_000,
+            mode: "top".to_string(),
+            items,
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        // Should show "... X more items" message
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_dominators_mode() {
+        let results = AnalysisResults {
+            total_size_bytes: 500_000,
+            mode: "dominators".to_string(),
+            items: vec![AnalysisItem {
+                name: "dominator_function".to_string(),
+                size_bytes: 250_000,
+                percentage: 50.0,
+            }],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_garbage_mode() {
+        let results = AnalysisResults {
+            total_size_bytes: 300_000,
+            mode: "garbage".to_string(),
+            items: vec![],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_comparison_report_size_reduction() {
+        let results = ComparisonResults {
+            before_size_bytes: 2_097_152, // 2 MB
+            after_size_bytes: 1_048_576,  // 1 MB
+            delta_bytes: -1_048_576,
+            delta_percent: -50.0,
+            top_changes: vec![
+                ChangeItem {
+                    delta_bytes: -524_288,
+                    name: "function_removed".to_string(),
+                },
+                ChangeItem {
+                    delta_bytes: -262_144,
+                    name: "function_optimized".to_string(),
+                },
+            ],
+        };
+
+        print_comparison_report(&results);
+    }
+
+    #[test]
+    fn test_print_comparison_report_size_increase() {
+        let results = ComparisonResults {
+            before_size_bytes: 1_048_576,
+            after_size_bytes: 2_097_152,
+            delta_bytes: 1_048_576,
+            delta_percent: 100.0,
+            top_changes: vec![ChangeItem {
+                delta_bytes: 524_288,
+                name: "function_added".to_string(),
+            }],
+        };
+
+        print_comparison_report(&results);
+    }
+
+    #[test]
+    fn test_print_comparison_report_no_changes() {
+        let results = ComparisonResults {
+            before_size_bytes: 1_048_576,
+            after_size_bytes: 1_048_576,
+            delta_bytes: 0,
+            delta_percent: 0.0,
+            top_changes: vec![],
+        };
+
+        print_comparison_report(&results);
+    }
+
+    #[test]
+    fn test_print_comparison_report_many_changes() {
+        let mut changes = Vec::new();
+        for i in 0..20 {
+            changes.push(ChangeItem {
+                delta_bytes: (i as i64 - 10) * 1000,
+                name: format!("change_{}", i),
+            });
+        }
+
+        let results = ComparisonResults {
+            before_size_bytes: 1_000_000,
+            after_size_bytes: 1_100_000,
+            delta_bytes: 100_000,
+            delta_percent: 10.0,
+            top_changes: changes,
+        };
+
+        // Should show "... X more changes" message
+        print_comparison_report(&results);
+    }
+
+    #[test]
+    fn test_print_comparison_report_small_delta() {
+        let results = ComparisonResults {
+            before_size_bytes: 1_000_000,
+            after_size_bytes: 999_000,
+            delta_bytes: -1_000,
+            delta_percent: -0.1,
+            top_changes: vec![],
+        };
+
+        print_comparison_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_many_mono_groups() {
+        let mut groups = Vec::new();
+        for i in 0..15 {
+            groups.push(MonomorphizationGroup {
+                function_name: format!("generic_function_{}", i),
+                instantiation_count: i + 2,
+                total_size_bytes: ((i + 1) * 1024) as u64,
+                avg_size_bytes: 512,
+                potential_savings_bytes: (i * 512) as u64,
+                instantiations: vec![],
+            });
+        }
+
+        let results = AnalysisResults {
+            total_size_bytes: 500_000,
+            mode: "monos".to_string(),
+            items: vec![],
+            mono_groups: Some(groups),
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_large_file_sizes() {
+        let results = AnalysisResults {
+            total_size_bytes: 10_485_760, // 10 MB
+            mode: "top".to_string(),
+            items: vec![AnalysisItem {
+                name: "large_function".to_string(),
+                size_bytes: 5_242_880, // 5 MB
+                percentage: 50.0,
+            }],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
+    }
+
+    #[test]
+    fn test_print_analysis_report_small_file_sizes() {
+        let results = AnalysisResults {
+            total_size_bytes: 10_240, // 10 KB
+            mode: "top".to_string(),
+            items: vec![AnalysisItem {
+                name: "small_function".to_string(),
+                size_bytes: 2_048,
+                percentage: 20.0,
+            }],
+            mono_groups: None,
+            recommendations: vec![],
+        };
+
+        print_analysis_report(&results);
     }
 }

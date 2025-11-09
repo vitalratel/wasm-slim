@@ -468,4 +468,447 @@ criterion = "0.5"
         assert!(deps.get("serde").is_some());
         assert!(deps.get("tokio").is_some());
     }
+
+    #[test]
+    fn test_optimize_with_existing_profile_release() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+opt-level = 2
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let content = std::fs::read_to_string(&cargo_toml).unwrap();
+        assert!(content.contains("[profile.release]"));
+    }
+
+    #[test]
+    fn test_optimize_with_lto_already_set() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+lto = true
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_optimize_with_codegen_units_already_set() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+codegen-units = 1
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_optimize_with_strip_already_set() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+strip = true
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_optimize_nonexistent_file_returns_error() {
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result =
+            editor.optimize_cargo_toml(Path::new("/nonexistent/Cargo.toml"), &config, None, false);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_optimize_with_invalid_toml_returns_error() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        // Write invalid TOML
+        std::fs::write(&cargo_toml, "this is not valid toml {{{").unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_with_fs_creates_editor() {
+        let _editor = CargoTomlEditor::<RealFileSystem>::with_fs(RealFileSystem);
+        // Just verify it compiles and creates successfully
+    }
+
+    #[test]
+    fn test_default_creates_editor() {
+        let _editor = CargoTomlEditor::default();
+        // Verify default constructor works
+    }
+
+    #[test]
+    fn test_optimize_returns_changes_list() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        // Should have made some optimizations
+        assert!(!changes.is_empty());
+    }
+
+    #[test]
+    fn test_optimize_with_wasm_pack_profile() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_optimize_empty_file() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        std::fs::write(&cargo_toml, "").unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        // Should handle empty file (may error or succeed depending on implementation)
+        let _ = result;
+    }
+
+    #[test]
+    fn test_optimize_file_with_only_package() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+edition = "2021"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let content = std::fs::read_to_string(&cargo_toml).unwrap();
+        assert!(content.contains("[profile.release]"));
+    }
+
+    #[test]
+    fn test_optimize_with_multiple_profiles() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 2
+
+[profile.test]
+opt-level = 1
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        // Verify all profiles are still present
+        let content = std::fs::read_to_string(&cargo_toml).unwrap();
+        assert!(content.contains("[profile.dev]"));
+        assert!(content.contains("[profile.release]"));
+        assert!(content.contains("[profile.test]"));
+    }
+
+    #[test]
+    fn test_optimize_with_existing_wasm_pack_profile() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O3"]
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let wasm_config = WasmOptConfig {
+            flags: vec!["-Oz".to_string()],
+        };
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, Some(&wasm_config), false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        assert!(changes.iter().any(|c| c.contains("wasm-opt")));
+    }
+
+    #[test]
+    fn test_optimize_with_opt_level_as_integer() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+opt-level = 3
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig {
+            opt_level: "z".to_string(),
+            ..Default::default()
+        };
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        assert!(changes.iter().any(|c| c.contains("opt-level")));
+    }
+
+    #[test]
+    fn test_optimize_with_panic_setting() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        assert!(changes.iter().any(|c| c.contains("panic")));
+    }
+
+    #[test]
+    fn test_optimize_preserves_existing_panic() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+panic = "abort"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        // Should not change panic if it's already set to "abort"
+        let panic_changes: Vec<_> = changes.iter().filter(|c| c.contains("panic")).collect();
+        assert_eq!(panic_changes.len(), 0);
+    }
+
+    #[test]
+    fn test_optimize_updates_different_wasm_opt_flags() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O"]
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let wasm_config = WasmOptConfig {
+            flags: vec!["-Oz".to_string(), "--strip-debug".to_string()],
+        };
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, Some(&wasm_config), false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        assert!(changes.iter().any(|c| c.contains("wasm-opt")));
+    }
+
+    #[test]
+    fn test_optimize_skips_wasm_opt_when_none() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        // Should not have wasm-opt changes when wasm_config is None
+        assert!(!changes.iter().any(|c| c.contains("wasm-opt")));
+    }
+
+    #[test]
+    fn test_optimize_with_matching_opt_level_string() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+
+[profile.release]
+opt-level = "z"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig {
+            opt_level: "z".to_string(),
+            ..Default::default()
+        };
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, false);
+
+        assert!(result.is_ok());
+        let changes = result.unwrap();
+        // Should not update opt-level if it already matches
+        let opt_changes: Vec<_> = changes.iter().filter(|c| c.contains("opt-level")).collect();
+        assert_eq!(opt_changes.len(), 0);
+    }
+
+    #[test]
+    fn test_dry_run_no_backup_created() {
+        let temp = TempDir::new().unwrap();
+        let cargo_toml = temp.path().join("Cargo.toml");
+
+        let content = r#"
+[package]
+name = "test"
+version = "0.1.0"
+"#;
+        std::fs::write(&cargo_toml, content).unwrap();
+
+        let editor = CargoTomlEditor::default();
+        let config = OptimizationConfig::default();
+        let result = editor.optimize_cargo_toml(&cargo_toml, &config, None, true);
+
+        assert!(result.is_ok());
+
+        // Verify no backup was created in dry-run mode
+        let backup_dir = temp.path().join(".wasm-slim").join("backups");
+        assert!(!backup_dir.exists() || std::fs::read_dir(&backup_dir).unwrap().count() == 0);
+    }
 }

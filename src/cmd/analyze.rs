@@ -321,3 +321,197 @@ pub fn analyze_wasm_binary(file: &Option<String>, mode: &str, json: bool) -> Res
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cmd_analyze_unknown_mode() {
+        let result = cmd_analyze(&None, "unknown_mode", false, false, false, false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown analysis mode"));
+    }
+
+    #[test]
+    fn test_cmd_analyze_valid_modes() {
+        let modes = vec![
+            "assets",
+            "deps",
+            "bloat",
+            "features",
+            "panics",
+            "top",
+            "dominators",
+            "dead",
+            "monos",
+        ];
+
+        for mode in modes {
+            // These will fail due to missing tools or project setup, but should route correctly
+            let result = cmd_analyze(&None, mode, false, false, false, false);
+            // Just verify the error is not "Unknown analysis mode"
+            if let Err(e) = result {
+                assert!(!e.to_string().contains("Unknown analysis mode"));
+            }
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_wasm_binary_modes_require_file() {
+        let wasm_modes = vec!["top", "dominators", "dead", "monos"];
+
+        for mode in wasm_modes {
+            let result = cmd_analyze(&None, mode, false, false, false, false);
+            assert!(result.is_err());
+            let error_msg = result.unwrap_err().to_string();
+            assert!(error_msg.contains("WASM file required") || error_msg.contains("twiggy"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_with_file_parameter() {
+        let file = Some("test.wasm".to_string());
+        let result = cmd_analyze(&file, "top", false, false, false, false);
+        // Should fail on twiggy check or file not found, not on missing file parameter
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("WASM file required"));
+        }
+    }
+
+    #[test]
+    fn test_analyze_wasm_binary_requires_file() {
+        let result = analyze_wasm_binary(&None, "top", false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("WASM file required"));
+    }
+
+    #[test]
+    fn test_analyze_wasm_binary_with_file() {
+        let file = Some("/path/to/test.wasm".to_string());
+        let result = analyze_wasm_binary(&file, "top", false);
+        // Should fail on twiggy check or file existence, not on missing file
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("WASM file required"));
+        }
+    }
+
+    #[test]
+    fn test_analyze_wasm_binary_all_modes() {
+        let modes = vec!["top", "dominators", "dead", "monos"];
+        let file = Some("test.wasm".to_string());
+
+        for mode in modes {
+            let result = analyze_wasm_binary(&file, mode, false);
+            // These will fail but should parse the mode correctly
+            if let Err(e) = result {
+                assert!(!e.to_string().contains("WASM file required"));
+            }
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_error_message_includes_valid_modes() {
+        let result = cmd_analyze(&None, "invalid", false, false, false, false);
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("assets"));
+        assert!(error.contains("deps"));
+        assert!(error.contains("bloat"));
+        assert!(error.contains("features"));
+        assert!(error.contains("panics"));
+        assert!(error.contains("top"));
+        assert!(error.contains("dominators"));
+        assert!(error.contains("dead"));
+        assert!(error.contains("monos"));
+    }
+
+    #[test]
+    fn test_cmd_analyze_case_sensitive() {
+        // Mode matching should be case-sensitive
+        let result = cmd_analyze(&None, "ASSETS", false, false, false, false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown analysis mode"));
+    }
+
+    #[test]
+    fn test_cmd_analyze_with_fix_flag() {
+        // Test that fix flag is accepted (will fail on actual execution but routing should work)
+        let result = cmd_analyze(&None, "deps", true, false, false, false);
+        // Should not error on unknown mode
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("Unknown analysis mode"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_with_dry_run_flag() {
+        let result = cmd_analyze(&None, "deps", false, true, false, false);
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("Unknown analysis mode"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_with_guide_flag() {
+        let result = cmd_analyze(&None, "assets", false, false, true, false);
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("Unknown analysis mode"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_with_json_flag() {
+        let result = cmd_analyze(&None, "features", false, false, false, true);
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("Unknown analysis mode"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_multiple_flags() {
+        let result = cmd_analyze(&None, "deps", true, true, false, true);
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("Unknown analysis mode"));
+        }
+    }
+
+    #[test]
+    fn test_cmd_analyze_empty_mode_string() {
+        let result = cmd_analyze(&None, "", false, false, false, false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown analysis mode"));
+    }
+
+    #[test]
+    fn test_cmd_analyze_whitespace_mode() {
+        let result = cmd_analyze(&None, "   ", false, false, false, false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown analysis mode"));
+    }
+
+    #[test]
+    fn test_cmd_analyze_mode_with_whitespace() {
+        let result = cmd_analyze(&None, " assets ", false, false, false, false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown analysis mode"));
+    }
+}

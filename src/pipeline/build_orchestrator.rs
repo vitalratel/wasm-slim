@@ -378,7 +378,6 @@ mod integration_tests {
     }
 
     #[test]
-    #[ignore = "Integration test with mocks - unreliable in containerized environments"]
     fn test_orchestrator_with_failed_cargo_stops_pipeline() {
         let config = PipelineConfig::default();
         let fs = MockFileSystem::new(1000);
@@ -402,7 +401,6 @@ mod integration_tests {
     }
 
     #[test]
-    #[ignore = "Integration test with mocks - unreliable in containerized environments"]
     fn test_orchestrator_tracks_size_changes_through_pipeline() {
         let config = PipelineConfig {
             run_wasm_opt: false,

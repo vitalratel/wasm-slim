@@ -95,4 +95,173 @@ mod tests {
         assert_eq!(truncate("short", 10), "short");
         assert_eq!(truncate("this is a very long string", 10), "this is...");
     }
+
+    #[test]
+    fn test_reporter_new() {
+        let _reporter = BenchmarkReporter::new();
+        // Should not panic
+    }
+
+    #[test]
+    fn test_reporter_default() {
+        let _reporter = BenchmarkReporter;
+        // Should not panic
+    }
+
+    #[test]
+    fn test_print_comparison_empty_list() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![];
+        // Should not panic
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_with_regression() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 1200,
+            change_percent: 20.0,
+            is_regression: true,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_with_improvement() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 800,
+            change_percent: -20.0,
+            is_regression: false,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_with_stable_performance() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 1010,
+            change_percent: 1.0,
+            is_regression: false,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_with_budget_exceeded() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 1100,
+            change_percent: 10.0,
+            is_regression: false,
+            exceeds_budget: true,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_multiple_benchmarks() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![
+            BenchmarkComparison {
+                name: "bench1".to_string(),
+                baseline_mean_ns: 1000,
+                current_mean_ns: 1200,
+                change_percent: 20.0,
+                is_regression: true,
+                exceeds_budget: false,
+            },
+            BenchmarkComparison {
+                name: "bench2".to_string(),
+                baseline_mean_ns: 2000,
+                current_mean_ns: 1800,
+                change_percent: -10.0,
+                is_regression: false,
+                exceeds_budget: false,
+            },
+        ];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_print_comparison_long_benchmark_name() {
+        let reporter = BenchmarkReporter::new();
+        let comparisons = vec![BenchmarkComparison {
+            name: "this_is_a_very_long_benchmark_name_that_should_be_truncated".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 1100,
+            change_percent: 10.0,
+            is_regression: false,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
+
+    #[test]
+    fn test_format_ns_all_units() {
+        // Nanoseconds
+        assert_eq!(format_ns(0), "0 ns");
+        assert_eq!(format_ns(1), "1 ns");
+        assert_eq!(format_ns(999), "999 ns");
+
+        // Microseconds
+        assert_eq!(format_ns(1_000), "1.00 µs");
+        assert_eq!(format_ns(123_456), "123.46 µs");
+
+        // Milliseconds
+        assert_eq!(format_ns(1_000_000), "1.00 ms");
+        assert_eq!(format_ns(123_456_789), "123.46 ms");
+
+        // Seconds
+        assert_eq!(format_ns(1_000_000_000), "1.00 s");
+        assert_eq!(format_ns(5_000_000_000), "5.00 s");
+    }
+
+    #[test]
+    fn test_truncate_edge_cases() {
+        assert_eq!(truncate("", 10), "");
+        assert_eq!(truncate("abc", 3), "abc");
+        assert_eq!(truncate("abcd", 3), "...");
+        assert_eq!(truncate("abcdef", 5), "ab...");
+    }
+
+    #[test]
+    fn test_print_comparison_boundary_change_percent() {
+        let reporter = BenchmarkReporter::new();
+
+        // Exactly -5.0% (should show green)
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 950,
+            change_percent: -5.0,
+            is_regression: false,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+
+        // Just below -5.0% (should show green)
+        let comparisons = vec![BenchmarkComparison {
+            name: "test_bench".to_string(),
+            baseline_mean_ns: 1000,
+            current_mean_ns: 940,
+            change_percent: -6.0,
+            is_regression: false,
+            exceeds_budget: false,
+        }];
+        reporter.print_comparison(&comparisons);
+    }
 }
