@@ -114,10 +114,10 @@ See [examples/README.md](examples/README.md) for details.
 
 ## 🧪 Quality
 
-- **Tests**: 861 tests across 20 modules (unit, integration, doc tests)
-- **Benchmarks**: 3 benchmark suites with regression detection
+- **Tests**: Comprehensive test suite with 1000+ tests (unit, integration, doc tests)
+- **Benchmarks**: Multiple benchmark suites with regression detection
 - **CI/CD**: Automated testing, security audits, performance tracking
-- **Coverage**: Comprehensive test coverage for core functionality
+- **Coverage**: 95%+ test coverage across all modules
 
 ## 🔧 Development
 
