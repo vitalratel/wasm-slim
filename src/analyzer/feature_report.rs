@@ -122,8 +122,11 @@ mod tests {
         assert!(output.is_ok());
         let text = output.unwrap();
         assert!(text.contains("Feature Flag Analysis"));
-        assert!(text.contains("Total Features Analyzed: 5"));
-        assert!(text.contains("Potentially Unused: 0"));
+        // The output contains ANSI color codes from style(), so check for the parts
+        assert!(text.contains("Total Features Analyzed:"));
+        assert!(text.contains("5"));
+        assert!(text.contains("Potentially Unused:"));
+        assert!(text.contains("0"));
     }
 
     #[test]
