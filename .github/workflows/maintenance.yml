@@ -11,6 +11,10 @@ concurrency:
   group: maintenance
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
