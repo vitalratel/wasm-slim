@@ -277,13 +277,24 @@ jobs:
         run: |
           cargo license --json > licenses.json
           
-          # Check for any copyleft or unknown licenses
-          if grep -qi "GPL\|AGPL\|unknown" licenses.json; then
-            echo "⚠️  Found potentially problematic licenses"
+          # Check for problematic licenses (standalone GPL/AGPL, unknown licenses)
+          # Allow dual-licensed packages that include permissive options (Apache/MIT/BSD)
+          PROBLEMATIC=$(jq -r '.[] | select(
+            (.license | test("unknown"; "i")) or
+            ((.license | test("GPL|AGPL"; "i")) and 
+             (.license | test(" OR ") | not))
+          ) | "\(.name) (\(.version)): \(.license)"' licenses.json)
+          
+          if [ -n "$PROBLEMATIC" ]; then
+            echo "⚠️  Found potentially problematic licenses:"
+            echo "$PROBLEMATIC"
+            echo ""
+            echo "Full license report:"
             cargo license
             exit 1
           else
             echo "✅ All licenses are compatible"
+            cargo license
           fi
 
       - name: Create issue on license problems
