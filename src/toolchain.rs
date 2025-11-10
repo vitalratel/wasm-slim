@@ -112,13 +112,7 @@ mod tests {
         assert!(!result);
     }
 
-    #[test]
-    fn test_is_nightly_toolchain_detects_channel() {
-        // Integration test with real rustc
-        let detector = ToolchainDetector::new();
-        let result = detector.is_nightly_toolchain();
-        assert!(result.is_ok());
-    }
+    // Integration test moved to tests/tools_integration.rs
 
     #[test]
     fn test_is_nightly_toolchain_returns_bool() {
