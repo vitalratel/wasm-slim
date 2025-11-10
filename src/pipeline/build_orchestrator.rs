@@ -21,6 +21,8 @@ static CHECKMARK: Emoji = Emoji("✅", "[OK]");
 
 /// Orchestrates the complete build workflow
 pub struct BuildOrchestrator<FS: FileSystem, CE: CommandExecutor> {
+    #[cfg_attr(test, allow(dead_code))]
+    project_root: PathBuf,
     config: PipelineConfig,
     toolchain: ToolChain,
     tool_runner: ToolRunner<FS, CE>,
@@ -37,12 +39,13 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildOrchestrator<FS, 
         cmd_executor: CE,
     ) -> Self {
         let tool_runner = ToolRunner::new(
-            project_root,
+            project_root.clone(),
             config.clone(),
             fs.clone(),
             cmd_executor.clone(),
         );
         Self {
+            project_root,
             config,
             toolchain,
             tool_runner,
@@ -57,6 +60,19 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildOrchestrator<FS, 
             HAMMER,
             style("Running").bold()
         );
+
+        // Step 0: Validate project structure first (before checking tools)
+        // Skip in unit tests since mock filesystems don't have Cargo.toml
+        #[cfg(not(test))]
+        {
+            let cargo_toml = self.project_root.join("Cargo.toml");
+            if !cargo_toml.exists() {
+                return Err(PipelineError::FileNotFound(format!(
+                    "Cargo.toml not found in {}",
+                    self.project_root.display()
+                )));
+            }
+        }
 
         // Step 1: Check tools (skip in tests since we use mocks)
         #[cfg(not(test))]
