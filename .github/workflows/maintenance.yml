@@ -150,6 +150,19 @@ jobs:
       - name: Install wasm32 target
         run: rustup target add wasm32-unknown-unknown
 
+      - name: Cache twiggy binary
+        id: cache-twiggy
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/twiggy
+          key: ${{ runner.os }}-twiggy-0.7.0
+          restore-keys: |
+            ${{ runner.os }}-twiggy-
+
+      - name: Install twiggy
+        if: steps.cache-twiggy.outputs.cache-hit != 'true'
+        run: cargo install twiggy --version 0.7.0
+
       - name: Cache wasm-bindgen binary
         id: cache-wasm-bindgen
         uses: actions/cache@v4
