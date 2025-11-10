@@ -218,7 +218,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Read original content
-        let config_path = temp_dir.path().join(config::CONFIG_FILE_NAME);
+        let config_path = env::current_dir().unwrap().join(config::CONFIG_FILE_NAME);
         let original_content = fs::read_to_string(&config_path).unwrap();
 
         // Try to create again
