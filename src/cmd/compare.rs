@@ -33,22 +33,15 @@ use crate::analyzer;
 /// - twiggy is not installed
 /// - Files are not valid WASM binaries
 pub fn cmd_compare(before: &str, after: &str) -> Result<()> {
-    // Check if twiggy is installed
-    if !analyzer::TwiggyAnalyzer::check_installation()? {
-        eprintln!(
-            "{}",
-            style(analyzer::TwiggyAnalyzer::installation_instructions()).yellow()
-        );
-        anyhow::bail!("twiggy not installed");
-    }
+    cmd_compare_impl(before, after, true)
+}
 
-    println!("📊 {} WASM Build Comparison", style("wasm-slim").bold());
-    println!();
-
+/// Internal implementation that allows skipping twiggy check for testing
+fn cmd_compare_impl(before: &str, after: &str, check_twiggy: bool) -> Result<()> {
     let before_path = Path::new(before);
     let after_path = Path::new(after);
 
-    // Verify files exist
+    // Verify files exist first (before checking for twiggy)
     if !before_path.exists() {
         anyhow::bail!(
             "Baseline file not found: {}. Run a build first to create a baseline.",
@@ -58,6 +51,18 @@ pub fn cmd_compare(before: &str, after: &str) -> Result<()> {
     if !after_path.exists() {
         anyhow::bail!("Comparison file not found: {}", after);
     }
+
+    // Check if twiggy is installed (unless we're in test mode)
+    if check_twiggy && !analyzer::TwiggyAnalyzer::check_installation()? {
+        eprintln!(
+            "{}",
+            style(analyzer::TwiggyAnalyzer::installation_instructions()).yellow()
+        );
+        anyhow::bail!("twiggy not installed");
+    }
+
+    println!("📊 {} WASM Build Comparison", style("wasm-slim").bold());
+    println!();
 
     // Run comparison
     use crate::infra::{RealCommandExecutor, RealFileSystem};
@@ -89,7 +94,7 @@ mod tests {
         // Create after file but not baseline
         fs::write(&after, b"dummy wasm content").unwrap();
 
-        let result = cmd_compare(baseline.to_str().unwrap(), after.to_str().unwrap());
+        let result = cmd_compare_impl(baseline.to_str().unwrap(), after.to_str().unwrap(), false);
 
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
@@ -106,7 +111,7 @@ mod tests {
         // Create baseline file but not comparison
         fs::write(&baseline, b"dummy wasm content").unwrap();
 
-        let result = cmd_compare(baseline.to_str().unwrap(), after.to_str().unwrap());
+        let result = cmd_compare_impl(baseline.to_str().unwrap(), after.to_str().unwrap(), false);
 
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
@@ -120,7 +125,7 @@ mod tests {
         let baseline = temp_dir.path().join("nonexistent1.wasm");
         let after = temp_dir.path().join("nonexistent2.wasm");
 
-        let result = cmd_compare(baseline.to_str().unwrap(), after.to_str().unwrap());
+        let result = cmd_compare_impl(baseline.to_str().unwrap(), after.to_str().unwrap(), false);
 
         assert!(result.is_err());
         // Should fail on baseline first
@@ -135,7 +140,7 @@ mod tests {
         let after = temp_dir.path().join("missing_after.wasm");
 
         // Neither file exists, but baseline should be checked first
-        let result = cmd_compare(baseline.to_str().unwrap(), after.to_str().unwrap());
+        let result = cmd_compare_impl(baseline.to_str().unwrap(), after.to_str().unwrap(), false);
 
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
@@ -149,7 +154,7 @@ mod tests {
         let baseline_path = "/some/path/to/baseline.wasm";
         let after_path = "/some/path/to/after.wasm";
 
-        let result = cmd_compare(baseline_path, after_path);
+        let result = cmd_compare_impl(baseline_path, after_path, false);
 
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();

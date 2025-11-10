@@ -58,7 +58,8 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildOrchestrator<FS, 
             style("Running").bold()
         );
 
-        // Step 1: Check tools
+        // Step 1: Check tools (skip in tests since we use mocks)
+        #[cfg(not(test))]
         self.toolchain.check_required()?;
 
         // Step 2: Build with cargo
