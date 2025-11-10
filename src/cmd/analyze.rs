@@ -281,6 +281,12 @@ pub fn analyze_wasm_binary(file: &Option<String>, mode: &str, json: bool) -> Res
         anyhow::anyhow!("WASM file required for binary analysis mode (top/dominators/dead/monos)")
     })?;
 
+    // Check if the WASM file exists first (before checking for twiggy)
+    let wasm_path = std::path::Path::new(f);
+    if !wasm_path.exists() {
+        anyhow::bail!("WASM file not found: {}", f);
+    }
+
     // Check if twiggy is installed
     if !analyzer::TwiggyAnalyzer::check_installation()? {
         eprintln!(

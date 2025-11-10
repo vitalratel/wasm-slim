@@ -30,6 +30,11 @@ Thumbs.db
 # CI cache
 .ci-cache/
 
+# Generated CI artifacts
+licenses.json
+outdated.json
+outdated.txt
+
 # Serena (LSP/tooling)
 .serena/
 
