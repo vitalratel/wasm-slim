@@ -31,10 +31,10 @@ anyhow = "1.0.40"
 thiserror = "2"
 
 # Progress indicators
-indicatif = { version = "0.17", default-features = false, features = ["unicode-width"] }
+indicatif = { version = "0.18", default-features = false, features = ["unicode-width"] }
 
 # Terminal styling
-console = { version = "0.15", default-features = false, features = ["unicode-width"] }
+console = { version = "0.16", default-features = false, features = ["unicode-width"] }
 
 # Cargo workspace metadata
 cargo_metadata = "0.23"
