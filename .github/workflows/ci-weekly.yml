@@ -139,33 +139,11 @@ jobs:
           path: lcov.info
           retention-days: 30
 
-  # Outdated dependencies check (informational)
-  outdated:
-    name: Outdated Dependencies
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-outdated
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-outdated
-
-      - name: Check for outdated dependencies
-        run: |
-          echo "::notice::Checking for outdated dependencies (informational only)"
-          cargo outdated || echo "::warning::Some dependencies are outdated. Consider updating."
-
   # Summary
   summary:
     name: Weekly Summary
     runs-on: ubuntu-latest
-    needs: [cross-platform, msrv, minimal-versions, coverage, outdated]
+    needs: [cross-platform, msrv, minimal-versions, coverage]
     if: always()
 
     steps:
@@ -179,4 +157,3 @@ jobs:
           echo "| MSRV | ${{ needs.msrv.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Minimal Versions | ${{ needs.minimal-versions.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Outdated Deps | ${{ needs.outdated.result }} |" >> $GITHUB_STEP_SUMMARY
