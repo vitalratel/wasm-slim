@@ -1,10 +1,23 @@
+# ABOUTME: Performance benchmarks with regression detection
+# ABOUTME: Runs on PRs to detect regressions, updates baseline on main
+
 name: Performance Benchmarks
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docs/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docs/**'
 
 # Cancel in-progress runs for the same PR
 concurrency:
@@ -32,29 +45,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: ~/.cargo/registry/index
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache cargo git
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-git-
-
-      - name: Cache build artifacts
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-bench-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-target-bench-
+          key: bench
 
       - name: Cache baseline (from main branch)
         uses: actions/cache@v4
@@ -98,7 +92,7 @@ jobs:
 
       - name: Comment on PR with results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
@@ -173,48 +167,3 @@ jobs:
         run: |
           echo "::error::Performance regression detected! Review the benchmark results above."
           exit 1
-
-  # Optional: Run benchmarks on schedule to track performance over time
-  scheduled-benchmark:
-    name: Scheduled Performance Check
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-scheduled-bench-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build bench-tracker
-        run: cargo build --release --bin bench-tracker
-
-      - name: Run benchmarks
-        run: cargo bench
-
-      - name: Generate report
-        run: |
-          cargo run --release --bin bench-tracker -- show > benchmark-report.txt || true
-          cat benchmark-report.txt
-
-      - name: Upload report
-        uses: actions/upload-artifact@v5
-        with:
-          name: scheduled-benchmark-report
-          path: benchmark-report.txt
-          retention-days: 90
-
-# Uncomment to enable weekly performance checks
-# on:
-#   schedule:
-#     - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
