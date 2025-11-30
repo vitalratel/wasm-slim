@@ -32,6 +32,12 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+          targets: wasm32-unknown-unknown
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: twiggy,wasm-bindgen-cli@0.2.106
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
