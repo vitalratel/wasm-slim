@@ -147,7 +147,7 @@ jobs:
             --version "main-${{ github.sha }}"
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: criterion-results
@@ -155,7 +155,7 @@ jobs:
           retention-days: 30
 
       - name: Upload baseline
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: github.ref == 'refs/heads/main'
         with:
           name: benchmark-baseline
