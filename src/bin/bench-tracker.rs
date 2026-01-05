@@ -50,7 +50,15 @@ enum Commands {
     },
 
     /// Show comparison with baseline without running benchmarks
-    Compare,
+    Compare {
+        /// Maximum allowed regression percentage (default: 10%)
+        #[arg(long, default_value = "10.0")]
+        max_regression: f64,
+
+        /// Fail if regressions are detected
+        #[arg(long)]
+        fail_on_regression: bool,
+    },
 
     /// Show current baseline information
     Show,
@@ -85,8 +93,11 @@ fn main() -> Result<()> {
         Commands::Baseline { version } => {
             save_baseline(&project_root, version)?;
         }
-        Commands::Compare => {
-            compare_with_baseline(&project_root)?;
+        Commands::Compare {
+            max_regression,
+            fail_on_regression,
+        } => {
+            compare_with_baseline(&project_root, max_regression, fail_on_regression)?;
         }
         Commands::Show => {
             show_baseline(&project_root)?;
@@ -198,13 +209,23 @@ fn save_baseline(project_root: &Path, version: String) -> Result<()> {
 }
 
 /// Compare with baseline without running benchmarks
-fn compare_with_baseline(project_root: &Path) -> Result<()> {
+fn compare_with_baseline(
+    project_root: &Path,
+    max_regression: f64,
+    fail_on_regression: bool,
+) -> Result<()> {
     let criterion_dir = project_root.join("target").join("criterion");
     if !criterion_dir.exists() {
         anyhow::bail!("No criterion results found. Run benchmarks first.");
     }
 
-    let tracker = BenchmarkTracker::new(project_root);
+    let budget = PerformanceBudget {
+        max_regression_percent: max_regression,
+        max_time_ns: None,
+        fail_on_violation: fail_on_regression,
+    };
+
+    let tracker = BenchmarkTracker::with_budget(project_root, budget);
     let current_results = tracker.parse_criterion_results(&criterion_dir)?;
 
     if let Some(baseline) = tracker.load_baseline()? {
@@ -213,6 +234,9 @@ fn compare_with_baseline(project_root: &Path) -> Result<()> {
 
         if tracker.has_regressions(&comparisons) {
             println!("\n⚠️  Performance regressions detected!");
+            if fail_on_regression {
+                anyhow::bail!("Performance regressions exceed threshold");
+            }
         } else {
             println!("\n✓ No significant performance regressions");
         }

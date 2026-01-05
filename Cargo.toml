@@ -30,11 +30,8 @@ serde_json = "1"
 anyhow = "1.0.40"
 thiserror = "2"
 
-# Progress indicators
-indicatif = { version = "0.18", default-features = false, features = ["unicode-width"] }
-
 # Terminal styling
-console = { version = "0.16", default-features = false, features = ["unicode-width"] }
+console = { version = "0.16", default-features = false, features = ["std", "unicode-width"] }
 
 # Cargo workspace metadata
 cargo_metadata = "0.23"
@@ -60,7 +57,6 @@ regex = { version = "1.10", default-features = false, features = ["std", "unicod
 
 # Logging
 env_logger = "0.11"
-log = "0.4"
 uuid = { version = "1.19.0", features = ["v4"] }
 
 [dev-dependencies]
