@@ -600,7 +600,7 @@ lto = "thin"
         let project_root = temp_dir.path();
         let config_path = project_root.join(CONFIG_FILE_NAME);
 
-        // TOML doesn't allow trailing commas in inline tables
+        // TOML 1.1 allows trailing commas in inline tables
         let trailing_comma_toml = r#"
 template = "balanced"
 profile = { opt_level = "z", lto = "thin", }
@@ -609,7 +609,7 @@ profile = { opt_level = "z", lto = "thin", }
         fs::write(&config_path, trailing_comma_toml).unwrap();
 
         let result = ConfigLoader::load(project_root);
-        // TOML spec disallows trailing commas in inline tables
-        assert!(result.is_err());
+        // TOML 1.1 spec allows trailing commas in inline tables
+        assert!(result.is_ok());
     }
 }
