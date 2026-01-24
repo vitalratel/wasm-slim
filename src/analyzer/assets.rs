@@ -91,9 +91,14 @@ impl AssetDetector<RealFileSystem> {
 
 // Static utility methods (no generic parameters needed)
 impl AssetDetector {
-    /// Detect asset type from file extension
+    /// Detect asset type from file extension (case-insensitive)
     fn detect_type(path: &Path) -> AssetType {
-        match path.extension().and_then(|e| e.to_str()) {
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase());
+
+        match ext.as_deref() {
             Some("ttf") | Some("otf") | Some("woff") | Some("woff2") => AssetType::Font,
             Some("png") | Some("jpg") | Some("jpeg") | Some("gif") | Some("svg") | Some("webp") => {
                 AssetType::Image
@@ -525,18 +530,18 @@ mod tests {
 
     #[test]
     fn test_detect_type_mixed_case_extensions_handles_case_insensitive() {
-        // Extensions should be case-sensitive (lowercase only)
+        // Extensions should be case-insensitive
         assert_eq!(
             AssetDetector::detect_type(Path::new("font.TTF")),
-            AssetType::Unknown
+            AssetType::Font
         );
         assert_eq!(
             AssetDetector::detect_type(Path::new("image.PNG")),
-            AssetType::Unknown
+            AssetType::Image
         );
         assert_eq!(
             AssetDetector::detect_type(Path::new("config.JSON")),
-            AssetType::Unknown
+            AssetType::Data
         );
     }
 
@@ -887,16 +892,26 @@ mod tests {
                 filename, final_ext);
         }
 
-        /// Property: Mixed case extensions are case-sensitive (lowercase required)
+        /// Property: Extensions are case-insensitive
         #[test]
-        fn prop_case_sensitivity_uppercase_extensions_return_unknown(
+        fn prop_case_insensitivity_uppercase_extensions_match_lowercase(
             prefix in "[a-z]{1,15}",
             ext in prop::sample::select(vec!["PNG", "TTF", "JSON", "WOFF2"])
         ) {
             let filename = format!("{}.{}", prefix, ext);
             let detected = AssetDetector::detect_type(Path::new(&filename));
-            prop_assert_eq!(detected, AssetType::Unknown,
-                "File '{}' with uppercase extension should be Unknown", filename);
+
+            // Uppercase should match the same as lowercase
+            let expected = match ext {
+                "PNG" => AssetType::Image,
+                "TTF" => AssetType::Font,
+                "JSON" => AssetType::Data,
+                "WOFF2" => AssetType::Font,
+                _ => AssetType::Unknown,
+            };
+
+            prop_assert_eq!(detected, expected,
+                "File '{}' with uppercase extension should match lowercase", filename);
         }
     }
 }

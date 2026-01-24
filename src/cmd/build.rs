@@ -96,11 +96,10 @@ fn present_build_results(metrics: &crate::pipeline::SizeMetrics) {
     );
 
     let reduction = metrics.before_bytes.saturating_sub(metrics.after_bytes);
-    let percent = (reduction as f64 / metrics.before_bytes as f64) * 100.0;
     println!(
         "   Reduction: {} ({:.1}%)",
         style(format_bytes(reduction)).green(),
-        percent
+        metrics.reduction_percent()
     );
     println!();
 }
@@ -120,14 +119,11 @@ fn present_budget_check(passed: Option<bool>, threshold: Option<u64>) {
 
 /// Present JSON report for CI/CD systems
 fn present_json_report(metrics: &crate::pipeline::SizeMetrics) -> Result<()> {
-    let reduction = metrics.before_bytes.saturating_sub(metrics.after_bytes);
-    let percent = (reduction as f64 / metrics.before_bytes as f64) * 100.0;
-
     let report = serde_json::json!({
         "final_size": metrics.after_bytes,
         "original_size": metrics.before_bytes,
-        "reduction_bytes": reduction,
-        "reduction_percent": percent,
+        "reduction_bytes": metrics.before_bytes.saturating_sub(metrics.after_bytes),
+        "reduction_percent": metrics.reduction_percent(),
         "timestamp": std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()

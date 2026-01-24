@@ -21,10 +21,9 @@ static CHECKMARK: Emoji = Emoji("✅", "[OK]");
 
 /// Orchestrates the complete build workflow
 pub struct BuildOrchestrator<FS: FileSystem, CE: CommandExecutor> {
-    #[cfg_attr(test, allow(dead_code))]
     project_root: PathBuf,
     config: PipelineConfig,
-    toolchain: ToolChain,
+    toolchain: ToolChain<CE>,
     tool_runner: ToolRunner<FS, CE>,
     fs: FS,
 }
@@ -34,7 +33,7 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildOrchestrator<FS, 
     pub fn new(
         project_root: PathBuf,
         config: PipelineConfig,
-        toolchain: ToolChain,
+        toolchain: ToolChain<CE>,
         fs: FS,
         cmd_executor: CE,
     ) -> Self {
@@ -62,20 +61,15 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildOrchestrator<FS, 
         );
 
         // Step 0: Validate project structure first (before checking tools)
-        // Skip in unit tests since mock filesystems don't have Cargo.toml
-        #[cfg(not(test))]
-        {
-            let cargo_toml = self.project_root.join("Cargo.toml");
-            if !cargo_toml.exists() {
-                return Err(PipelineError::FileNotFound(format!(
-                    "Cargo.toml not found in {}",
-                    self.project_root.display()
-                )));
-            }
+        let cargo_toml = self.project_root.join("Cargo.toml");
+        if self.fs.metadata(&cargo_toml).is_err() {
+            return Err(PipelineError::FileNotFound(format!(
+                "Cargo.toml not found in {}",
+                self.project_root.display()
+            )));
         }
 
-        // Step 1: Check tools (skip in tests since we use mocks)
-        #[cfg(not(test))]
+        // Step 1: Check required tools are available
         self.toolchain.check_required()?;
 
         // Step 2: Build with cargo
@@ -390,8 +384,34 @@ mod integration_tests {
             Command::new("true").status()
         }
 
-        fn output(&self, _cmd: &mut Command) -> io::Result<std::process::Output> {
-            unimplemented!()
+        fn output(&self, cmd: &mut Command) -> io::Result<std::process::Output> {
+            let program = cmd.get_program().to_string_lossy().to_string();
+            self.operations
+                .lock()
+                .expect("MockCommandExecutor operations lock should never be poisoned in tests")
+                .push(format!("output: {}", program));
+
+            // Check if we should fail at this step
+            if let Some(ref fail_step) = *self
+                .fail_at_step
+                .lock()
+                .expect("MockCommandExecutor fail_at_step lock should never be poisoned in tests")
+            {
+                if program.contains(fail_step) {
+                    return Ok(std::process::Output {
+                        status: Command::new("false").status()?,
+                        stdout: Vec::new(),
+                        stderr: b"mock failure".to_vec(),
+                    });
+                }
+            }
+
+            // Return success with mock version info
+            Ok(std::process::Output {
+                status: Command::new("true").status()?,
+                stdout: b"mock-version 1.0.0\n".to_vec(),
+                stderr: Vec::new(),
+            })
         }
     }
 
@@ -405,7 +425,7 @@ mod integration_tests {
         let orchestrator = BuildOrchestrator::new(
             PathBuf::from("/test"),
             config,
-            ToolChain::default(),
+            ToolChain::with_executor(cmd_executor.clone()),
             fs.clone(),
             cmd_executor.clone(),
         );
@@ -413,9 +433,13 @@ mod integration_tests {
         let result = orchestrator.execute();
         assert!(result.is_err());
 
-        // Verify cargo was attempted
+        // Verify cargo tool check was attempted (via version check)
         let ops = cmd_executor.operations();
-        assert!(ops.iter().any(|op| op.contains("cargo")));
+        assert!(
+            ops.iter().any(|op| op.contains("cargo")),
+            "Expected cargo in operations: {:?}",
+            ops
+        );
     }
 
     #[test]
@@ -432,7 +456,7 @@ mod integration_tests {
         let orchestrator = BuildOrchestrator::new(
             PathBuf::from("/test"),
             config,
-            ToolChain::default(),
+            ToolChain::with_executor(cmd_executor.clone()),
             fs.clone(),
             cmd_executor,
         );
@@ -460,7 +484,7 @@ mod integration_tests {
         let orchestrator = BuildOrchestrator::new(
             PathBuf::from("/test"),
             config,
-            ToolChain::default(),
+            ToolChain::with_executor(cmd_executor.clone()),
             fs,
             cmd_executor.clone(),
         );
@@ -506,7 +530,7 @@ mod integration_tests {
         let orchestrator = BuildOrchestrator::new(
             PathBuf::from("/test"),
             config,
-            ToolChain::default(),
+            ToolChain::with_executor(cmd_executor.clone()),
             fs,
             cmd_executor.clone(),
         );

@@ -207,10 +207,10 @@ impl WasmSlimError {
         match self {
             Self::ToolMissing { docs_url, .. } => docs_url.as_deref(),
             Self::ConfigNotFound { .. } => {
-                Some("https://github.com/yourusername/wasm-slim#configuration")
+                Some("https://github.com/vitalratel/wasm-slim#configuration")
             }
             Self::BudgetExceeded { .. } => {
-                Some("https://github.com/yourusername/wasm-slim#ci-cd-integration")
+                Some("https://github.com/vitalratel/wasm-slim#ci-cd-integration")
             }
             _ => None,
         }

@@ -337,17 +337,18 @@ impl<CE: CommandExecutor> ToolChain<CE> {
 
     /// Check only required tools (faster check)
     ///
-    /// Verifies cargo and wasm-bindgen-cli are available.
+    /// Verifies cargo and wasm-bindgen-cli are available by running them.
     ///
     /// # Errors
-    /// Returns error if any required tool is missing
+    /// Returns error if any required tool is missing or not working
     pub fn check_required(&self) -> Result<(), ToolError> {
         let tools = [&self.cargo, &self.wasm_bindgen];
 
         for tool in &tools {
-            if !tool.is_installed() {
+            // Try to get version to verify tool is installed and working
+            if tool.version().is_err() {
                 return Err(ToolError::MissingTool(format!(
-                    "{} is required but not found in PATH",
+                    "{} is required but not found or not working",
                     tool.name
                 )));
             }
