@@ -116,7 +116,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: twiggy,wasm-bindgen-cli@0.2.106
+          tool: twiggy,wasm-bindgen-cli@0.2.108
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
