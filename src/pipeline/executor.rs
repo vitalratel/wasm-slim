@@ -80,7 +80,7 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildPipeline<FS, CE> 
         let orchestrator = BuildOrchestrator::new(
             project_root.as_ref().to_path_buf(),
             config,
-            ToolChain::default(),
+            ToolChain::with_executor(cmd_executor.clone()),
             fs,
             cmd_executor,
         );
@@ -205,6 +205,7 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildPipeline<FS, CE> 
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use = "Build results contain important size metrics"]
     pub fn build(&self) -> Result<SizeMetrics, PipelineError> {
         self.orchestrator.execute()
     }

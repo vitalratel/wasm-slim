@@ -527,8 +527,6 @@ getrandom = "0.3"
         assert!(updated.contains("wasm_js"));
     }
 
-    // ============ P2-TEST-COV-011: Negative Test Cases ============
-
     #[test]
     fn test_apply_suggestions_with_missing_cargo_toml_returns_error() {
         let temp_dir = TempDir::new().unwrap();

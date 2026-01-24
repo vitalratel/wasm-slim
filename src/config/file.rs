@@ -117,8 +117,6 @@ impl SizeBudget {
     }
 }
 
-impl ConfigFile {}
-
 impl Default for ConfigFile {
     fn default() -> Self {
         Self {

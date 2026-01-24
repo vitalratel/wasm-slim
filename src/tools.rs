@@ -337,17 +337,18 @@ impl<CE: CommandExecutor> ToolChain<CE> {
 
     /// Check only required tools (faster check)
     ///
-    /// Verifies cargo and wasm-bindgen-cli are available.
+    /// Verifies cargo and wasm-bindgen-cli are available by running them.
     ///
     /// # Errors
-    /// Returns error if any required tool is missing
+    /// Returns error if any required tool is missing or not working
     pub fn check_required(&self) -> Result<(), ToolError> {
         let tools = [&self.cargo, &self.wasm_bindgen];
 
         for tool in &tools {
-            if !tool.is_installed() {
+            // Try to get version to verify tool is installed and working
+            if tool.version().is_err() {
                 return Err(ToolError::MissingTool(format!(
-                    "{} is required but not found in PATH",
+                    "{} is required but not found or not working",
                     tool.name
                 )));
             }
@@ -360,6 +361,7 @@ impl<CE: CommandExecutor> ToolChain<CE> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::infra::mock_exit_status;
     use std::io;
     use std::process::{Command, Output};
     use std::sync::{Arc, Mutex};
@@ -405,9 +407,9 @@ mod tests {
             }
 
             if *self.should_succeed.lock().unwrap() {
-                Command::new("true").status()
+                Ok(mock_exit_status(0))
             } else {
-                Command::new("false").status()
+                Ok(mock_exit_status(1))
             }
         }
 
@@ -417,9 +419,9 @@ mod tests {
             }
 
             let status = if *self.should_succeed.lock().unwrap() {
-                Command::new("true").status()?
+                mock_exit_status(0)
             } else {
-                Command::new("false").status()?
+                mock_exit_status(1)
             };
 
             Ok(Output {
@@ -572,18 +574,6 @@ mod tests {
             }
         }
     }
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // P2-UNIT-003: Version parsing edge case tests
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
 
     #[test]
     fn test_toolchain_new_creates_with_default_tools() {

@@ -401,8 +401,6 @@ mod tests {
         let _ = BloatAnalyzer::check_installation();
     }
 
-    // P2-TEST-UNIT-001: Bloat analyzer parse scenarios
-
     #[test]
     fn test_parse_size_plain_number_without_units_parses_as_bytes() {
         let size = BloatAnalyzer::parse_size("1024").expect("should parse plain number as bytes");

@@ -56,8 +56,6 @@ mod tests {
         assert_eq!(WasmOptLevel::O3.as_arg(), "-O3");
     }
 
-    // P2-TEST-COV-012: Pipeline error propagation tests
-
     #[test]
     fn test_size_metrics_with_zero_before_size_handles_division_by_zero() {
         // Test edge case: zero before size
@@ -172,8 +170,6 @@ mod tests {
         assert_eq!(format_bytes(gb), "1024.00 MB");
         assert_eq!(format_bytes(gb * 2), "2048.00 MB");
     }
-
-    // P2-UNIT-002: Pipeline edge case tests
 
     #[test]
     fn test_pipeline_config_with_empty_strings_sets_correctly() {

@@ -276,8 +276,6 @@ mod tests {
         }
     }
 
-    // P2-TEST-COV-010: Report formatting edge case tests
-
     #[test]
     fn test_print_json_output_empty_results_succeeds() {
         // Test JSON output with zero assets
