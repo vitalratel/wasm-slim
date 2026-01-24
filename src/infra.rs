@@ -144,6 +144,21 @@ impl CommandExecutor for RealCommandExecutor {
     }
 }
 
+/// Create an ExitStatus with the given exit code for use in test mocks.
+///
+/// This avoids spawning actual processes (like `Command::new("true")`) in tests.
+#[cfg(all(test, unix))]
+pub fn mock_exit_status(code: i32) -> ExitStatus {
+    use std::os::unix::process::ExitStatusExt;
+    ExitStatus::from_raw(code << 8) // Unix stores exit code in upper bits
+}
+
+#[cfg(all(test, windows))]
+pub fn mock_exit_status(code: i32) -> ExitStatus {
+    use std::os::windows::process::ExitStatusExt;
+    ExitStatus::from_raw(code as u32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

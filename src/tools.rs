@@ -361,6 +361,7 @@ impl<CE: CommandExecutor> ToolChain<CE> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::infra::mock_exit_status;
     use std::io;
     use std::process::{Command, Output};
     use std::sync::{Arc, Mutex};
@@ -406,9 +407,9 @@ mod tests {
             }
 
             if *self.should_succeed.lock().unwrap() {
-                Command::new("true").status()
+                Ok(mock_exit_status(0))
             } else {
-                Command::new("false").status()
+                Ok(mock_exit_status(1))
             }
         }
 
@@ -418,9 +419,9 @@ mod tests {
             }
 
             let status = if *self.should_succeed.lock().unwrap() {
-                Command::new("true").status()?
+                mock_exit_status(0)
             } else {
-                Command::new("false").status()?
+                mock_exit_status(1)
             };
 
             Ok(Output {

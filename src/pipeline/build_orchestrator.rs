@@ -257,7 +257,7 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use crate::infra::{RealCommandExecutor, RealFileSystem};
+    use crate::infra::{mock_exit_status, RealCommandExecutor, RealFileSystem};
     use std::io;
     use std::path::Path;
     use std::process::Command;
@@ -377,11 +377,11 @@ mod integration_tests {
                 .expect("MockCommandExecutor fail_at_step lock should never be poisoned in tests")
             {
                 if program.contains(fail_step) {
-                    return Command::new("false").status();
+                    return Ok(mock_exit_status(1));
                 }
             }
 
-            Command::new("true").status()
+            Ok(mock_exit_status(0))
         }
 
         fn output(&self, cmd: &mut Command) -> io::Result<std::process::Output> {
@@ -399,7 +399,7 @@ mod integration_tests {
             {
                 if program.contains(fail_step) {
                     return Ok(std::process::Output {
-                        status: Command::new("false").status()?,
+                        status: mock_exit_status(1),
                         stdout: Vec::new(),
                         stderr: b"mock failure".to_vec(),
                     });
@@ -408,7 +408,7 @@ mod integration_tests {
 
             // Return success with mock version info
             Ok(std::process::Output {
-                status: Command::new("true").status()?,
+                status: mock_exit_status(0),
                 stdout: b"mock-version 1.0.0\n".to_vec(),
                 stderr: Vec::new(),
             })

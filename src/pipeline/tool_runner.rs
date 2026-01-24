@@ -206,7 +206,7 @@ impl<FS: FileSystem, CE: CommandExecutor> ToolRunner<FS, CE> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infra::{RealCommandExecutor, RealFileSystem};
+    use crate::infra::{mock_exit_status, RealCommandExecutor, RealFileSystem};
     use std::io;
     use std::process::Command;
     use std::sync::{Arc, Mutex};
@@ -302,18 +302,11 @@ mod tests {
                 return Err(io::Error::new(io::ErrorKind::NotFound, "command not found"));
             }
 
-            // Create a fake exit status
             let code = *self
                 .exit_code
                 .lock()
                 .expect("MockCommandExecutor lock should never be poisoned in tests");
-            // This is a hack to create an ExitStatus for testing
-            // In real tests, we'd use Command::new("true") or Command::new("false")
-            if code == 0 {
-                Command::new("true").status()
-            } else {
-                Command::new("false").status()
-            }
+            Ok(mock_exit_status(code))
         }
 
         fn output(&self, _cmd: &mut Command) -> io::Result<std::process::Output> {
