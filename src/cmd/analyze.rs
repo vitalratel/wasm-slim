@@ -14,9 +14,9 @@ use std::env;
 
 use crate::analyzer;
 
-static MICROSCOPE: Emoji = Emoji("🔍", ">>");
-static WRENCH: Emoji = Emoji("🔧", "*");
-static WARNING: Emoji = Emoji("⚠️", "!");
+const MICROSCOPE: Emoji = Emoji("🔍", ">>");
+const WRENCH: Emoji = Emoji("🔧", "*");
+const WARNING: Emoji = Emoji("⚠️", "!");
 
 /// Main analyze command dispatcher
 ///
