@@ -242,6 +242,8 @@ impl BuildWorkflow {
 
     /// Phase 2: Run the build pipeline
     fn run_build_pipeline(&self) -> Result<pipeline::SizeMetrics> {
+        use crate::error::WasmSlimError;
+
         let _config = config::ConfigLoader::load(&self.project_root)
             .unwrap_or_else(|_| config::ConfigFile::default());
 
@@ -254,7 +256,7 @@ impl BuildWorkflow {
         let build_pipeline = pipeline::BuildPipeline::new(&self.project_root, pipeline_config);
         build_pipeline
             .build()
-            .map_err(|e| anyhow::anyhow!("Build pipeline failed: {}", e))
+            .map_err(|e| anyhow::Error::from(WasmSlimError::from(e)))
     }
 
     /// Phase 3: Check CI/CD budget

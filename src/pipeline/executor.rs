@@ -205,6 +205,7 @@ impl<FS: FileSystem + Clone, CE: CommandExecutor + Clone> BuildPipeline<FS, CE> 
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use = "Build results contain important size metrics"]
     pub fn build(&self) -> Result<SizeMetrics, PipelineError> {
         self.orchestrator.execute()
     }

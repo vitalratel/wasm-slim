@@ -575,18 +575,6 @@ mod tests {
         }
     }
 
-    // Integration test moved to tests/tools_integration.rs
-
-    // P2-UNIT-003: Version parsing edge case tests
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
-
-    // Integration test moved to tests/tools_integration.rs
-
     #[test]
     fn test_toolchain_new_creates_with_default_tools() {
         let toolchain = ToolChain::new();

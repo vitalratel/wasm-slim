@@ -57,8 +57,6 @@ fn bench_asset_detection_full_workflow(c: &mut Criterion) {
     });
 }
 
-// P2-TEST-BENCH-001: Add realistic benchmark datasets
-
 fn bench_realistic_small_project_assets(c: &mut Criterion) {
     // Small project: ~10 asset files (images, fonts)
     use std::fs;

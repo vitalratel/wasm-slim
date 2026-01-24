@@ -112,8 +112,6 @@ mod tests {
         assert!(!result);
     }
 
-    // Integration test moved to tests/tools_integration.rs
-
     #[test]
     fn test_is_nightly_toolchain_returns_bool() {
         // Integration test with real rustc

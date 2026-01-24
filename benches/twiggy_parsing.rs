@@ -105,8 +105,6 @@ fn bench_large_twiggy_parsing(c: &mut Criterion) {
     });
 }
 
-// P2-TEST-BENCH-001: Add realistic benchmark datasets
-
 fn bench_realistic_small_project(c: &mut Criterion) {
     // Small project: ~50 functions, typical for simple WASM apps
     let mut output = String::with_capacity(10_000);

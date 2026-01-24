@@ -9,14 +9,11 @@
 //! - top/dominators/dead/monos: WASM binary analysis with twiggy
 
 use anyhow::{Context, Result};
-use console::{style, Emoji};
+use console::style;
 use std::env;
 
 use crate::analyzer;
-
-const MICROSCOPE: Emoji = Emoji("🔍", ">>");
-const WRENCH: Emoji = Emoji("🔧", "*");
-const WARNING: Emoji = Emoji("⚠️", "!");
+use crate::fmt::{MICROSCOPE, WARNING, WRENCH};
 
 /// Main analyze command dispatcher
 ///

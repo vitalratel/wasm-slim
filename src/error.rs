@@ -29,6 +29,8 @@
 use std::path::PathBuf;
 use thiserror::Error;
 
+use crate::pipeline::PipelineError;
+
 /// Enhanced wasm-slim errors with contextual suggestions
 #[derive(Error, Debug)]
 pub enum WasmSlimError {
@@ -116,6 +118,10 @@ pub enum WasmSlimError {
         /// IO error source
         source: std::io::Error,
     },
+
+    /// Pipeline error during build
+    #[error("pipeline error: {0}")]
+    Pipeline(#[from] PipelineError),
 }
 
 impl WasmSlimError {
@@ -182,6 +188,18 @@ impl WasmSlimError {
                 "Check file permissions and that {} is accessible",
                 context
             )),
+            Self::Pipeline(e) => {
+                let msg = e.to_string();
+                if msg.contains("wasm32-unknown-unknown") {
+                    Some(
+                        "Install WASM target: rustup target add wasm32-unknown-unknown".to_string(),
+                    )
+                } else if msg.contains("wasm-opt") || msg.contains("wasm-bindgen") {
+                    Some("Ensure required tools are installed. Run: cargo install wasm-bindgen-cli && cargo install wasm-opt".to_string())
+                } else {
+                    Some("Check the build errors above and fix compilation issues".to_string())
+                }
+            }
         }
     }
 
@@ -212,6 +230,7 @@ impl WasmSlimError {
             Self::BudgetExceeded { .. } => {
                 Some("https://github.com/vitalratel/wasm-slim#ci-cd-integration")
             }
+            Self::Pipeline(_) => Some("https://github.com/vitalratel/wasm-slim#build-pipeline"),
             _ => None,
         }
     }
@@ -252,6 +271,17 @@ impl WasmSlimError {
             Self::BuildFailed { .. } => 1,   // Generic error
             Self::InvalidAnalysisMode { .. } => 64, // EX_USAGE
             Self::Io { .. } => 74,           // EX_IOERR
+            Self::Pipeline(_) => 1,          // Generic error (build failed)
+        }
+    }
+}
+
+impl WasmSlimError {
+    /// Returns the pipeline error if this is a `Pipeline` variant.
+    pub fn as_pipeline_error(&self) -> Option<&PipelineError> {
+        match self {
+            Self::Pipeline(e) => Some(e),
+            _ => None,
         }
     }
 }
@@ -519,6 +549,9 @@ mod tests {
                 context: "test".to_string(),
                 source: std::io::Error::other("test"),
             },
+            WasmSlimError::Pipeline(crate::pipeline::PipelineError::BuildFailed(
+                "test".to_string(),
+            )),
         ];
 
         for err in errors {
@@ -572,6 +605,9 @@ mod tests {
                 context: "reading file".to_string(),
                 source: std::io::Error::other("test"),
             },
+            WasmSlimError::Pipeline(crate::pipeline::PipelineError::BuildFailed(
+                "build failed".to_string(),
+            )),
         ];
 
         for err in &errors {
@@ -586,5 +622,44 @@ mod tests {
                 "Suggestion should not be empty"
             );
         }
+    }
+
+    #[test]
+    fn test_pipeline_error_has_suggestion() {
+        let err = WasmSlimError::Pipeline(crate::pipeline::PipelineError::BuildFailed(
+            "cargo build failed".to_string(),
+        ));
+
+        let suggestion = err
+            .suggestion()
+            .expect("Pipeline error should have suggestion");
+        assert!(!suggestion.is_empty());
+    }
+
+    #[test]
+    fn test_pipeline_error_with_wasm_target_has_install_suggestion() {
+        let err = WasmSlimError::Pipeline(crate::pipeline::PipelineError::BuildFailed(
+            "target wasm32-unknown-unknown not found".to_string(),
+        ));
+
+        let suggestion = err
+            .suggestion()
+            .expect("Pipeline error should have suggestion");
+        assert!(suggestion.contains("rustup target add"));
+        assert!(suggestion.contains("wasm32-unknown-unknown"));
+    }
+
+    #[test]
+    fn test_pipeline_error_accessor() {
+        let pipeline_err = crate::pipeline::PipelineError::BuildFailed("test".to_string());
+        let err = WasmSlimError::Pipeline(pipeline_err);
+
+        assert!(err.as_pipeline_error().is_some());
+
+        let other_err = WasmSlimError::Io {
+            context: "test".to_string(),
+            source: std::io::Error::other("test"),
+        };
+        assert!(other_err.as_pipeline_error().is_none());
     }
 }

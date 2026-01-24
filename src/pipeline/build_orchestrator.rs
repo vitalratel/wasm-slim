@@ -2,10 +2,10 @@
 //!
 //! Coordinates the build workflow across multiple tools
 
-use console::{style, Emoji};
+use console::style;
 use std::path::PathBuf;
 
-use crate::fmt::format_bytes;
+use crate::fmt::{format_bytes, CHECKMARK, HAMMER, SPARKLES};
 use crate::infra::{CommandExecutor, FileSystem};
 use crate::tools::ToolChain;
 
@@ -14,10 +14,6 @@ use super::error::PipelineError;
 use super::metrics::SizeMetrics;
 use super::result_formatter::ResultFormatter;
 use super::tool_runner::ToolRunner;
-
-static HAMMER: Emoji = Emoji("🔨", ">");
-static SPARKLES: Emoji = Emoji("✨", "*");
-static CHECKMARK: Emoji = Emoji("✅", "[OK]");
 
 /// Orchestrates the complete build workflow
 pub struct BuildOrchestrator<FS: FileSystem, CE: CommandExecutor> {

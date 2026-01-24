@@ -1,12 +1,9 @@
 //! Build result formatting and display
 
-use console::{style, Emoji};
+use console::style;
 
 use super::metrics::SizeMetrics;
-use crate::fmt::format_bytes;
-
-static CHART: Emoji = Emoji("📊", "~");
-static SPARKLES: Emoji = Emoji("✨", "*");
+use crate::fmt::{format_bytes, CHART, SPARKLES};
 
 /// Formats and displays build results
 pub struct ResultFormatter;

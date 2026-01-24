@@ -4,15 +4,11 @@
 //! from a template (aggressive, balanced, minimal, etc.)
 
 use anyhow::Result;
-use console::{style, Emoji};
+use console::style;
 use std::env;
 
 use crate::config;
-
-static ROCKET: Emoji = Emoji("🚀", ">");
-static SPARKLES: Emoji = Emoji("✨", "*");
-static CHECKMARK: Emoji = Emoji("✅", "[OK]");
-static INFO: Emoji = Emoji("ℹ️", "i");
+use crate::fmt::{CHECKMARK, INFO, ROCKET, SPARKLES};
 
 /// Initialize wasm-slim configuration from a template
 ///

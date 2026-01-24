@@ -451,8 +451,6 @@ mod tests {
         );
     }
 
-    // P2-TEST-COV-009: Comprehensive asset type detection tests
-
     #[test]
     fn test_detect_type_all_font_extensions_returns_font_type() {
         // Test all supported font extensions

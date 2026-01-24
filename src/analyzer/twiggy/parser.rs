@@ -217,8 +217,6 @@ Another header
         assert_eq!(changes[1].name, "removed_function");
     }
 
-    // P2-TEST-UNIT-002: Twiggy parser format tests
-
     #[test]
     fn test_parse_line_decimal_percentage_parses_fractional() {
         let analyzer = TwiggyAnalyzer::new("dummy.wasm");

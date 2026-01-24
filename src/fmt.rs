@@ -3,16 +3,34 @@
 use console::Emoji;
 
 /// Wrench emoji for build/tool operations
-pub static WRENCH: Emoji = Emoji("🔧", "*");
+pub const WRENCH: Emoji = Emoji("🔧", "*");
 
 /// Rocket emoji for launch/start operations
-pub static ROCKET: Emoji = Emoji("🚀", ">");
+pub const ROCKET: Emoji = Emoji("🚀", ">");
 
 /// Checkmark emoji for success
-pub static CHECKMARK: Emoji = Emoji("✅", "[OK]");
+pub const CHECKMARK: Emoji = Emoji("✅", "[OK]");
 
 /// Crossmark emoji for failure
-pub static CROSSMARK: Emoji = Emoji("❌", "[FAIL]");
+pub const CROSSMARK: Emoji = Emoji("❌", "[FAIL]");
+
+/// Hammer emoji for build operations
+pub const HAMMER: Emoji = Emoji("🔨", ">");
+
+/// Sparkles emoji for completion/success
+pub const SPARKLES: Emoji = Emoji("✨", "*");
+
+/// Info emoji for informational messages
+pub const INFO: Emoji = Emoji("ℹ️", "i");
+
+/// Chart emoji for metrics/statistics
+pub const CHART: Emoji = Emoji("📊", "~");
+
+/// Microscope emoji for analysis/inspection
+pub const MICROSCOPE: Emoji = Emoji("🔍", ">>");
+
+/// Warning emoji for caution/alerts
+pub const WARNING: Emoji = Emoji("⚠️", "!");
 
 /// Format bytes as human-readable size string
 ///
