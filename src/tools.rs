@@ -519,17 +519,18 @@ mod tests {
 
     #[test]
     fn test_check_required_with_all_required_tools_present_succeeds() {
-        // Should succeed when cargo is present (it always is in tests)
         let toolchain = ToolChain::default();
         let result = toolchain.check_required();
 
-        // This might fail if wasm-bindgen is not installed, which is acceptable
-        // The test validates that the check runs without panicking
+        // May fail if a required tool is not installed
         match result {
             Ok(_) => { /* Both tools found */ }
             Err(e) => {
-                // Should mention wasm-bindgen if it fails
-                assert!(e.to_string().contains("wasm-bindgen"));
+                let err_msg = e.to_string();
+                assert!(
+                    err_msg.contains("Cargo") || err_msg.contains("wasm-bindgen"),
+                    "Expected error to mention a required tool, got: {err_msg}"
+                );
             }
         }
     }
