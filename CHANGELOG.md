@@ -7,28 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- WASM bundle size optimization CLI
-- Dependency analysis with size impact assessment
-- Asset detection in Rust source code
-- Feature flag analysis
-- Cargo.toml optimization with backup/restore
-- Twiggy integration for binary analysis
-- CI/CD integration with size budgets
-- Nightly Rust build-std support
-- Comprehensive benchmarking suite (3 suites, 11 benchmarks)
-- 861 tests across 20 test modules
-- Template system (minimal, balanced, aggressive)
-- Build pipeline orchestration (cargo, wasm-bindgen, wasm-opt)
-- Workflow command for guided optimization
+## [0.1.1] - 2026-01-27
 
-### Performance
-- Asset scanning: ~1.2ms per 1000 files
-- Dependency analysis: ~50ms for typical projects
-- Binary optimized to 2.7MB (release build)
-- Parallel file processing with rayon
+### Fixed
+- `compare` command now validates file existence before checking for twiggy, providing correct error messages
 
-## [0.1.0] - 2025-11-07
+### Changed
+- MSRV bumped to 1.88 for cargo-platform compatibility
+- Removed 365 lines of unused plugin infrastructure from analyzer module
+
+### Improved
+- Test coverage increased from 82% to 91% (+188 test functions)
+
+### Dependencies
+- toml_edit: 0.23.9 → 0.24.0
+- criterion: 0.7.0 → 0.8.0
+- actions/cache: 4 → 5
+- actions/checkout: 4 → 6
+
+## [0.1.0] - 2025-11-08
 
 Initial beta release (pre-1.0 API may change).
 
